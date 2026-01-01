@@ -1,0 +1,133 @@
+{
+  "summary": {
+    "totalDomestic": 11,
+    "totalInternational": 4,
+    "extractedAt": "2025-12-31T17:18:31.964Z"
+  },
+  "transactions": {
+    "domestic": [
+      {
+        "date": "27/08/2025",
+        "time": "00:00",
+        "description": "IGST-VPS2624033500426-RATE 18.0 -02 (Ref# VT252400075032250000045)",
+        "amount": "13.06",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "23:19",
+        "description": "AMAZON PAY INDIA PRIVATE WWW.AMAZON",
+        "amount": "500.00",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "18:28",
+        "description": "POLICY BAZAAR DISIGURGAON",
+        "amount": "1,569.00",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "22:12",
+        "description": "AMAZON WEB SERVICESMUMBAI",
+        "amount": "418.76",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "22:07",
+        "description": "AMAZON WEB SERVICESMUMBAI",
+        "amount": "51.52",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "22:13",
+        "description": "AMAZON WEB SERVICESMUMBAI",
+        "amount": "517.26",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "22:14",
+        "description": "AMAZON WEB SERVICESMUMBAI",
+        "amount": "54.59",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "29/08/2025",
+        "time": "00:00",
+        "description": "IGST-VPS2624235649011-RATE 18.0 -02 (Ref# VT252420075031850000006)",
+        "amount": "11.07",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "02/09/2025",
+        "time": "00:00",
+        "description": "IGST-VPS2624645470493-RATE 18.0 -02 (Ref# VT252460075031530000086)",
+        "amount": "13.13",
+        "isCredit": false,
+        "type": "domestic"
+      },
+      {
+        "date": "11/09/2025",
+        "time": "07:52",
+        "description": "AUTOPAY THANK YOU (Ref# ST252550084000010052862)",
+        "amount": "3,620.00",
+        "isCredit": true,
+        "type": "domestic"
+      },
+      {
+        "date": "15/09/2025",
+        "time": "17:38",
+        "description": "EMI PRINCIPAL SRI GURU GOBI CHANDIGHAR",
+        "amount": "45,260.00",
+        "isCredit": false,
+        "type": "domestic"
+      }
+    ],
+    "international": [
+      {
+        "date": "27/08/2025",
+        "time": "13:52",
+        "description": "FIGMAFIGMA.COM",
+        "usdAmount": "23.60",
+        "inrAmount": "2,072.32",
+        "type": "international"
+      },
+      {
+        "date": "28/08/2025",
+        "time": "20:26",
+        "description": "CURSOR, AI POWERED IDECURSOR.COM",
+        "usdAmount": "20.00",
+        "inrAmount": "1,757.82",
+        "type": "international"
+      },
+      {
+        "date": "01/09/2025",
+        "time": "13:37",
+        "description": "CLAUDE.AI SUBSCRIPTIONANTHROPIC.",
+        "usdAmount": "23.60",
+        "inrAmount": "2,084.35",
+        "type": "international"
+      },
+      {
+        "date": "22/09/2025",
+        "time": "00:00",
+        "description": "CONSOLIDATED FCY MARKUP FEE (Ref# VT252460075031530000086)",
+        "usdAmount": null,
+        "inrAmount": "207.00",
+        "type": "international"
+      }
+    ]
+  }
+}

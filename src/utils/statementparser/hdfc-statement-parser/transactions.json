@@ -1,0 +1,752 @@
+[
+  {
+    "date": "03/07/25",
+    "narration": "UPI-ANKIT KALIA-9459772256@YESCRED-SBIN",
+    "referenceNumber": "0000555010281320",
+    "valueDate": "03/07/25",
+    "withdrawal": 16268,
+    "deposit": 0,
+    "closingBalance": 144279.22,
+    "type": "debit"
+  },
+  {
+    "date": "06/07/25",
+    "narration": "UPI-AMAZON BILL PAY-AMAZONPAYRECHARGES@R APL-RATN000RAPL-518700912052-REQUEST FRO M AMAZO",
+    "referenceNumber": "0000518700912052",
+    "valueDate": "06/07/25",
+    "withdrawal": 219,
+    "deposit": 0,
+    "closingBalance": 144060.22,
+    "type": "debit"
+  },
+  {
+    "date": "06/07/25",
+    "narration": "UPI-TULASH KUMAR-TULASHKUMAR96@OKAXIS-S BIN0063828-029303349920-FLOOD RELIEF",
+    "referenceNumber": "0000029303349920",
+    "valueDate": "06/07/25",
+    "withdrawal": 1000,
+    "deposit": 0,
+    "closingBalance": 143060.22,
+    "type": "debit"
+  },
+  {
+    "date": "06/07/25",
+    "narration": "UPI-ABHISHEK SHARMA-ABHISHEKSHARMA0541- 3@OKICICI-YESB0000272-555364923528-UPI",
+    "referenceNumber": "0000555364923528",
+    "valueDate": "06/07/25",
+    "withdrawal": 0,
+    "deposit": 5000,
+    "closingBalance": 148060.22,
+    "type": "credit"
+  },
+  {
+    "date": "08/07/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000JEQZWKNS",
+    "referenceNumber": "0000000554007417",
+    "valueDate": "08/07/25",
+    "withdrawal": 2000,
+    "deposit": 0,
+    "closingBalance": 146060.22,
+    "type": "debit"
+  },
+  {
+    "date": "08/07/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-00006MWOXY3S",
+    "referenceNumber": "0000000554104346",
+    "valueDate": "08/07/25",
+    "withdrawal": 1500,
+    "deposit": 0,
+    "closingBalance": 144560.22,
+    "type": "debit"
+  },
+  {
+    "date": "08/07/25",
+    "narration": "UPI-NAMITA SONI-SONINAMITA97@OKHDFCBANK- HDFC0004316-638401165002-LIBRARY FEES",
+    "referenceNumber": "0000638401165002",
+    "valueDate": "08/07/25",
+    "withdrawal": 800,
+    "deposit": 0,
+    "closingBalance": 143760.22,
+    "type": "debit"
+  },
+  {
+    "date": "08/07/25",
+    "narration": "UPI-KARTIK KALIA-9915344792@YBL-SBIN001",
+    "referenceNumber": "0000901806213098",
+    "valueDate": "08/07/25",
+    "withdrawal": 30000,
+    "deposit": 0,
+    "closingBalance": 113760.22,
+    "type": "debit"
+  },
+  {
+    "date": "08/07/25",
+    "narration": "UPI-SBI CARDS AND PAYMEN-SBICARDSANDPAYM ENTS.BDPG@ICICI-ICIC0DC0099-372257883898 -PAY",
+    "referenceNumber": "0000372257883898",
+    "valueDate": "08/07/25",
+    "withdrawal": 36527,
+    "deposit": 0,
+    "closingBalance": 77233.22,
+    "type": "debit"
+  },
+  {
+    "date": "09/07/25",
+    "narration": "UPI-ROHIT-7617408384@OKBIZAXIS-UTIB00005",
+    "referenceNumber": "0000107419558960",
+    "valueDate": "09/07/25",
+    "withdrawal": 70,
+    "deposit": 0,
+    "closingBalance": 77163.22,
+    "type": "debit"
+  },
+  {
+    "date": "12/07/25",
+    "narration": "CC 000434155XXXXXX5670 AUTOPAY SI-TAD",
+    "referenceNumber": "0000000679406616",
+    "valueDate": "12/07/25",
+    "withdrawal": 1930,
+    "deposit": 0,
+    "closingBalance": 75233.22,
+    "type": "debit"
+  },
+  {
+    "date": "13/07/25",
+    "narration": "UPI-SANJAY KUMAR-MUNISHSANDHU890@OKICICI -IPOS0000001-311277784760-REPAIR",
+    "referenceNumber": "0000311277784760",
+    "valueDate": "13/07/25",
+    "withdrawal": 50,
+    "deposit": 0,
+    "closingBalance": 75183.22,
+    "type": "debit"
+  },
+  {
+    "date": "19/07/25",
+    "narration": "UPI-AMAZON BILL PAY-AMAZONPAYRECHARGES@R APL-RATN000RAPL-520032366819-REQUEST FRO M AMAZO",
+    "referenceNumber": "0000520032366819",
+    "valueDate": "19/07/25",
+    "withdrawal": 471,
+    "deposit": 0,
+    "closingBalance": 74712.22,
+    "type": "debit"
+  },
+  {
+    "date": "21/07/25",
+    "narration": "UPI-KRISHN PAL-KRISHNAPAL6860-1@OKAXIS-B ARB0SHISHG-520243361739-UPI",
+    "referenceNumber": "0000520243361739",
+    "valueDate": "21/07/25",
+    "withdrawal": 0,
+    "deposit": 700,
+    "closingBalance": 75412.22,
+    "type": "credit"
+  },
+  {
+    "date": "22/07/25",
+    "narration": "ACH D- GROWW INVEST TECH PR-4IXOCT3NZ36O",
+    "referenceNumber": "0000001083075299",
+    "valueDate": "22/07/25",
+    "withdrawal": 1000,
+    "deposit": 0,
+    "closingBalance": 74412.22,
+    "type": "debit"
+  },
+  {
+    "date": "22/07/25",
+    "narration": "UPI-MANOJ KUMAR-MANUT2053@OKAXIS-CNRB000 0033-722447266152-PARKING LIBRARY",
+    "referenceNumber": "0000722447266152",
+    "valueDate": "22/07/25",
+    "withdrawal": 500,
+    "deposit": 0,
+    "closingBalance": 73912.22,
+    "type": "debit"
+  },
+  {
+    "date": "22/07/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000492029825077",
+    "valueDate": "22/07/25",
+    "withdrawal": 100,
+    "deposit": 0,
+    "closingBalance": 73812.22,
+    "type": "debit"
+  },
+  {
+    "date": "23/07/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000978361505765",
+    "valueDate": "23/07/25",
+    "withdrawal": 3,
+    "deposit": 0,
+    "closingBalance": 73809.22,
+    "type": "debit"
+  },
+  {
+    "date": "24/07/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000602017744736",
+    "valueDate": "24/07/25",
+    "withdrawal": 150,
+    "deposit": 0,
+    "closingBalance": 73659.22,
+    "type": "debit"
+  },
+  {
+    "date": "26/07/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000OGLCPZ69",
+    "referenceNumber": "0000001170783094",
+    "valueDate": "26/07/25",
+    "withdrawal": 3000,
+    "deposit": 0,
+    "closingBalance": 70659.22,
+    "type": "debit"
+  },
+  {
+    "date": "26/07/25",
+    "narration": "UPI-DEEP KUMAR-9459265912@YBL-PUNB066700",
+    "referenceNumber": "0000024389746402",
+    "valueDate": "26/07/25",
+    "withdrawal": 0,
+    "deposit": 61000,
+    "closingBalance": 131659.22,
+    "type": "credit"
+  },
+  {
+    "date": "28/07/25",
+    "narration": "UPI-DEEP KUMAR-9459265912@YBL-PUNB066700",
+    "referenceNumber": "0000224573113933",
+    "valueDate": "28/07/25",
+    "withdrawal": 0,
+    "deposit": 50000,
+    "closingBalance": 181659.22,
+    "type": "credit"
+  },
+  {
+    "date": "29/07/25",
+    "narration": "UPI-NIKHIL KALIA-NIKHIL1999KALIA@OKHDFCB ANK-HDFC0006073-108908266418-UPI",
+    "referenceNumber": "0000108908266418",
+    "valueDate": "29/07/25",
+    "withdrawal": 0,
+    "deposit": 10000,
+    "closingBalance": 191659.22,
+    "type": "credit"
+  },
+  {
+    "date": "31/07/25",
+    "narration": "ACH C- IDFC FIRST BANK LIMI-9853073",
+    "referenceNumber": "0000001274477298",
+    "valueDate": "31/07/25",
+    "withdrawal": 0,
+    "deposit": 13.5,
+    "closingBalance": 191672.72,
+    "type": "credit"
+  },
+  {
+    "date": "02/08/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000664455473718",
+    "valueDate": "02/08/25",
+    "withdrawal": 700,
+    "deposit": 0,
+    "closingBalance": 190972.72,
+    "type": "debit"
+  },
+  {
+    "date": "02/08/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000161404606855",
+    "valueDate": "02/08/25",
+    "withdrawal": 0,
+    "deposit": 700,
+    "closingBalance": 191672.72,
+    "type": "credit"
+  },
+  {
+    "date": "06/08/25",
+    "narration": "UPI-AMAZON BILL PAY-AMAZONPAYRECHARGES@R APL-RATN000RAPL-521871293727-REQUEST FRO M AMAZO",
+    "referenceNumber": "0000521871293727",
+    "valueDate": "06/08/25",
+    "withdrawal": 219,
+    "deposit": 0,
+    "closingBalance": 191453.72,
+    "type": "debit"
+  },
+  {
+    "date": "06/08/25",
+    "narration": "UPI-RAJAT KUMAR-KRAJAT961@YBL-CNRB000000 0-060563703923-LE BRO GOLFER SHOT",
+    "referenceNumber": "0000060563703923",
+    "valueDate": "06/08/25",
+    "withdrawal": 1000,
+    "deposit": 0,
+    "closingBalance": 190453.72,
+    "type": "debit"
+  },
+  {
+    "date": "06/08/25",
+    "narration": "UPI-BALA KUMARI-BALAR4108@OKHDFCBANK-CN RB0000033-969218851271-NAAN",
+    "referenceNumber": "0000969218851271",
+    "valueDate": "06/08/25",
+    "withdrawal": 200,
+    "deposit": 0,
+    "closingBalance": 190253.72,
+    "type": "debit"
+  },
+  {
+    "date": "07/08/25",
+    "narration": "UPI-PANKAJ KUMAR-7876145580@POSTBANK-IPO S0000001-212444032670-NARIYAL",
+    "referenceNumber": "0000212444032670",
+    "valueDate": "07/08/25",
+    "withdrawal": 200,
+    "deposit": 0,
+    "closingBalance": 190053.72,
+    "type": "debit"
+  },
+  {
+    "date": "08/08/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-00008UUOKUEX",
+    "referenceNumber": "0000002006716099",
+    "valueDate": "08/08/25",
+    "withdrawal": 2000,
+    "deposit": 0,
+    "closingBalance": 188053.72,
+    "type": "debit"
+  },
+  {
+    "date": "08/08/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-00004IDWU6IO",
+    "referenceNumber": "0000002006691905",
+    "valueDate": "08/08/25",
+    "withdrawal": 1500,
+    "deposit": 0,
+    "closingBalance": 186553.72,
+    "type": "debit"
+  },
+  {
+    "date": "08/08/25",
+    "narration": "UPI-NAMITA SONI-SONINAMITA97@OKHDFCBANK- HDFC0004316-661707928378-LIBRARY",
+    "referenceNumber": "0000661707928378",
+    "valueDate": "08/08/25",
+    "withdrawal": 800,
+    "deposit": 0,
+    "closingBalance": 185753.72,
+    "type": "debit"
+  },
+  {
+    "date": "08/08/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@YBL-IPOS0000",
+    "referenceNumber": "0000248156390964",
+    "valueDate": "08/08/25",
+    "withdrawal": 200,
+    "deposit": 0,
+    "closingBalance": 185553.72,
+    "type": "debit"
+  },
+  {
+    "date": "08/08/25",
+    "narration": "ACH C- XPRO FNLDIV 2024 25-13528",
+    "referenceNumber": "0000002083067577",
+    "valueDate": "08/08/25",
+    "withdrawal": 0,
+    "deposit": 20,
+    "closingBalance": 185573.72,
+    "type": "credit"
+  },
+  {
+    "date": "09/08/25",
+    "narration": "UPI-SULKHAN SINGH-SULKHANSINGH335-1@OKAX IS-HDFC0002327-232819029592-PAYMENT FROM PHONE",
+    "referenceNumber": "0000232819029592",
+    "valueDate": "09/08/25",
+    "withdrawal": 40,
+    "deposit": 0,
+    "closingBalance": 185533.72,
+    "type": "debit"
+  },
+  {
+    "date": "09/08/25",
+    "narration": "UPI-BALJEET SINGH-HGILL6916@OKHDFCBANK-B ARB0SANTMA-268015568491-CAB",
+    "referenceNumber": "0000268015568491",
+    "valueDate": "09/08/25",
+    "withdrawal": 228,
+    "deposit": 0,
+    "closingBalance": 185305.72,
+    "type": "debit"
+  },
+  {
+    "date": "10/08/25",
+    "narration": "UPI-KRITIKA SHARMA-8580607487@AXL-HDFC00 00597-840536586823-HAPPY RAKSHABANDAN",
+    "referenceNumber": "0000840536586823",
+    "valueDate": "10/08/25",
+    "withdrawal": 501,
+    "deposit": 0,
+    "closingBalance": 184804.72,
+    "type": "debit"
+  },
+  {
+    "date": "10/08/25",
+    "narration": "UPI-SHWETA SHARMA-SHWETA1994SH@YBL-HDFC0 002943-190266088246-RAKSHABANDAN",
+    "referenceNumber": "0000190266088246",
+    "valueDate": "10/08/25",
+    "withdrawal": 1100,
+    "deposit": 0,
+    "closingBalance": 183704.72,
+    "type": "debit"
+  },
+  {
+    "date": "10/08/25",
+    "narration": "UPI-DINESH KUMAR-9317748204@AXL-IPOS0000",
+    "referenceNumber": "0000007675106046",
+    "valueDate": "10/08/25",
+    "withdrawal": 0,
+    "deposit": 200,
+    "closingBalance": 183904.72,
+    "type": "credit"
+  },
+  {
+    "date": "10/08/25",
+    "narration": "UPI-MRS SWARNA SHARMA-VARINDER76SHARMA- 2@OKAXIS-CBIN0282153-558860187373-UPI",
+    "referenceNumber": "0000558860187373",
+    "valueDate": "10/08/25",
+    "withdrawal": 0,
+    "deposit": 32610,
+    "closingBalance": 216514.72,
+    "type": "credit"
+  },
+  {
+    "date": "11/08/25",
+    "narration": "CC 000434155XXXXXX5670 AUTOPAY SI-TAD",
+    "referenceNumber": "0000000685952439",
+    "valueDate": "11/08/25",
+    "withdrawal": 38639,
+    "deposit": 0,
+    "closingBalance": 177875.72,
+    "type": "debit"
+  },
+  {
+    "date": "12/08/25",
+    "narration": "NEFT CR-CNRB0005074-AMIT KUMAR-KARTIK KA LIA-CNRBN52025081267992835 992835",
+    "referenceNumber": "CNRBN52025081267",
+    "valueDate": "12/08/25",
+    "withdrawal": 0,
+    "deposit": 40000,
+    "closingBalance": 217875.72,
+    "type": "credit"
+  },
+  {
+    "date": "12/08/25",
+    "narration": "UPI-SYNAPSIS MEDICAL TEC-WISEPAY@YESBANK -YESB0000001-522471834545-RDA CR TO KYC COMP",
+    "referenceNumber": "0000522471834545",
+    "valueDate": "12/08/25",
+    "withdrawal": 0,
+    "deposit": 15636.17,
+    "closingBalance": 233511.89,
+    "type": "credit"
+  },
+  {
+    "date": "14/08/25",
+    "narration": "UPI-SHWETA SHARMA-SHWETA1994SH@IBL-HDFC0 002943-672126684242-SEND",
+    "referenceNumber": "0000672126684242",
+    "valueDate": "14/08/25",
+    "withdrawal": 5000,
+    "deposit": 0,
+    "closingBalance": 228511.89,
+    "type": "debit"
+  },
+  {
+    "date": "14/08/25",
+    "narration": "UPI-SHWETA SHARMA-SHWETA1994SH@YBL-HDFC0 002943-463446598944-PAYMENT FROM PHONE",
+    "referenceNumber": "0000463446598944",
+    "valueDate": "14/08/25",
+    "withdrawal": 0,
+    "deposit": 5000,
+    "closingBalance": 233511.89,
+    "type": "credit"
+  },
+  {
+    "date": "16/08/25",
+    "narration": "ACH C- CDSL FNLDIV 2024 25-423476",
+    "referenceNumber": "0000002448373344",
+    "valueDate": "16/08/25",
+    "withdrawal": 0,
+    "deposit": 75,
+    "closingBalance": 233586.89,
+    "type": "credit"
+  },
+  {
+    "date": "16/08/25",
+    "narration": "UPI-SBIMOPS-SBIMOPS@SBI-SBIN0016209-9747",
+    "referenceNumber": "0000974730771000",
+    "valueDate": "16/08/25",
+    "withdrawal": 50,
+    "deposit": 0,
+    "closingBalance": 233536.89,
+    "type": "debit"
+  },
+  {
+    "date": "20/08/25",
+    "narration": "UPI-V K TRADING-8847444391@AXL-UBIN09294",
+    "referenceNumber": "0000723063450171",
+    "valueDate": "20/08/25",
+    "withdrawal": 0,
+    "deposit": 1000,
+    "closingBalance": 234536.89,
+    "type": "credit"
+  },
+  {
+    "date": "22/08/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000ORP5K6EX",
+    "referenceNumber": "0000002614181236",
+    "valueDate": "22/08/25",
+    "withdrawal": 1000,
+    "deposit": 0,
+    "closingBalance": 233536.89,
+    "type": "debit"
+  },
+  {
+    "date": "22/08/25",
+    "narration": "ACH C- GESL-00000000000004125584",
+    "referenceNumber": "0000007022911234",
+    "valueDate": "22/08/25",
+    "withdrawal": 0,
+    "deposit": 72,
+    "closingBalance": 233608.89,
+    "type": "credit"
+  },
+  {
+    "date": "26/08/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000OGNNXHLE",
+    "referenceNumber": "0000002677331060",
+    "valueDate": "26/08/25",
+    "withdrawal": 3000,
+    "deposit": 0,
+    "closingBalance": 230608.89,
+    "type": "debit"
+  },
+  {
+    "date": "27/08/25",
+    "narration": "UPI-MANOJ",
+    "referenceNumber": "0000243099639698",
+    "valueDate": "27/08/25",
+    "withdrawal": 500,
+    "deposit": 0,
+    "closingBalance": 230108.89,
+    "type": "debit"
+  },
+  {
+    "date": "27/08/25",
+    "narration": "UPI-AMAZON PAY-AMAZONPAYRECHARGES@APL-UT IB0000100-523916552597-REQUEST FROM AMAZ O",
+    "referenceNumber": "0000523916552597",
+    "valueDate": "28/08/25",
+    "withdrawal": 483,
+    "deposit": 0,
+    "closingBalance": 229625.89,
+    "type": "debit"
+  },
+  {
+    "date": "28/08/25",
+    "narration": "ACH C- HUDCO LTD-HD1408250698196",
+    "referenceNumber": "0000002739379665",
+    "valueDate": "28/08/25",
+    "withdrawal": 0,
+    "deposit": 48.3,
+    "closingBalance": 229674.19,
+    "type": "credit"
+  },
+  {
+    "date": "02/09/25",
+    "narration": "UPI-AKSHITA RANA-AKSHITA2854@OKHDFCBANK- PUNB0667000-110661379821-UPI",
+    "referenceNumber": "0000110661379821",
+    "valueDate": "02/09/25",
+    "withdrawal": 0,
+    "deposit": 100,
+    "closingBalance": 229774.19,
+    "type": "credit"
+  },
+  {
+    "date": "04/09/25",
+    "narration": "ACH C- G A E L-00000000000000120365",
+    "referenceNumber": "0000007032881247",
+    "valueDate": "04/09/25",
+    "withdrawal": 0,
+    "deposit": 15,
+    "closingBalance": 229789.19,
+    "type": "credit"
+  },
+  {
+    "date": "05/09/25",
+    "narration": "UPI-DEVINDER SINGH SUDAN-SUDANDAVINDERSI NGH-1@OKSBI-HDFC0001217-473955148519-TAK EN FOR URGENT B",
+    "referenceNumber": "0000473955148519",
+    "valueDate": "05/09/25",
+    "withdrawal": 15000,
+    "deposit": 0,
+    "closingBalance": 214789.19,
+    "type": "debit"
+  },
+  {
+    "date": "08/09/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000QXCT5W57",
+    "referenceNumber": "0000003064527687",
+    "valueDate": "08/09/25",
+    "withdrawal": 2000,
+    "deposit": 0,
+    "closingBalance": 212789.19,
+    "type": "debit"
+  },
+  {
+    "date": "08/09/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000WUOCHEWK",
+    "referenceNumber": "0000003064605897",
+    "valueDate": "08/09/25",
+    "withdrawal": 1500,
+    "deposit": 0,
+    "closingBalance": 211289.19,
+    "type": "debit"
+  },
+  {
+    "date": "08/09/25",
+    "narration": "UPI-AMAZON PAY-AMAZONPAYRECHARGES@APL-UT IB0000100-525139988126-REQUEST FROM AMAZ O",
+    "referenceNumber": "0000525139988126",
+    "valueDate": "08/09/25",
+    "withdrawal": 452,
+    "deposit": 0,
+    "closingBalance": 210837.19,
+    "type": "debit"
+  },
+  {
+    "date": "10/09/25",
+    "narration": "UPI-NAMITA SONI-SONINAMITA97@OKHDFCBANK- HDFC0004316-937669292756-PAYMENT FROM PH ONE",
+    "referenceNumber": "0000937669292756",
+    "valueDate": "10/09/25",
+    "withdrawal": 800,
+    "deposit": 0,
+    "closingBalance": 210037.19,
+    "type": "debit"
+  },
+  {
+    "date": "10/09/25",
+    "narration": "ACH C- ACTION CONSTRUCTION-1208870015805",
+    "referenceNumber": "0000003192637813",
+    "valueDate": "10/09/25",
+    "withdrawal": 0,
+    "deposit": 50,
+    "closingBalance": 210087.19,
+    "type": "credit"
+  },
+  {
+    "date": "10/09/25",
+    "narration": "UPI-NIKHIL KALIA-NIKHIL1999KALIA-1@OKAXI",
+    "referenceNumber": "0000561986132733",
+    "valueDate": "10/09/25",
+    "withdrawal": 0,
+    "deposit": 1500,
+    "closingBalance": 211587.19,
+    "type": "credit"
+  },
+  {
+    "date": "11/09/25",
+    "narration": "CC 000434155XXXXXX5670 AUTOPAY SI-TAD",
+    "referenceNumber": "0000000692607018",
+    "valueDate": "11/09/25",
+    "withdrawal": 3620,
+    "deposit": 0,
+    "closingBalance": 207967.19,
+    "type": "debit"
+  },
+  {
+    "date": "13/09/25",
+    "narration": "UPI-MR NIKHIL KALIA SO S-8219178400@YBL-",
+    "referenceNumber": "0000697283298182",
+    "valueDate": "13/09/25",
+    "withdrawal": 10000,
+    "deposit": 0,
+    "closingBalance": 197967.19,
+    "type": "debit"
+  },
+  {
+    "date": "15/09/25",
+    "narration": "UPI-V K TRADING-8847444391@AXL-UBIN09294",
+    "referenceNumber": "0000048243492515",
+    "valueDate": "15/09/25",
+    "withdrawal": 0,
+    "deposit": 45260,
+    "closingBalance": 243227.19,
+    "type": "credit"
+  },
+  {
+    "date": "22/09/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000GB1WRBRG",
+    "referenceNumber": "0000003128920473",
+    "valueDate": "22/09/25",
+    "withdrawal": 1000,
+    "deposit": 0,
+    "closingBalance": 242227.19,
+    "type": "debit"
+  },
+  {
+    "date": "24/09/25",
+    "narration": "ACH C- SKM EGG FNLDIV 24 25-11021",
+    "referenceNumber": "0000002160075861",
+    "valueDate": "24/09/25",
+    "withdrawal": 0,
+    "deposit": 144,
+    "closingBalance": 242371.19,
+    "type": "credit"
+  },
+  {
+    "date": "25/09/25",
+    "narration": "UPI-SYNAPSIS MEDICAL TEC-WISEPAY@YESBANK -YESB0000001-526898531664-RDA CR TO KYC COMP",
+    "referenceNumber": "0000526898531664",
+    "valueDate": "25/09/25",
+    "withdrawal": 0,
+    "deposit": 15704.74,
+    "closingBalance": 258075.93,
+    "type": "credit"
+  },
+  {
+    "date": "26/09/25",
+    "narration": "ACH D- INDIAN CLEARING CORP-0000AAZYKIS9",
+    "referenceNumber": "0000003142520431",
+    "valueDate": "26/09/25",
+    "withdrawal": 3000,
+    "deposit": 0,
+    "closingBalance": 255075.93,
+    "type": "debit"
+  },
+  {
+    "date": "27/09/25",
+    "narration": "UPI-SYNAPSIS MEDICAL TEC-WISEPAY@YESBANK -YESB0000001-527002983980-RDA CR TO KYC COMP",
+    "referenceNumber": "0000527002983980",
+    "valueDate": "27/09/25",
+    "withdrawal": 0,
+    "deposit": 15644.95,
+    "closingBalance": 270720.88,
+    "type": "credit"
+  },
+  {
+    "date": "27/09/25",
+    "narration": "UPI-SMT MONIKA OHRI W O -9459097281@YBL-",
+    "referenceNumber": "0000068507579682",
+    "valueDate": "27/09/25",
+    "withdrawal": 2400,
+    "deposit": 0,
+    "closingBalance": 268320.88,
+    "type": "debit"
+  },
+  {
+    "date": "28/09/25",
+    "narration": "IB BILLPAY DR-HDFC92-434155XXXXXX5670",
+    "referenceNumber": "MB28143434517ET8",
+    "valueDate": "28/09/25",
+    "withdrawal": 45000,
+    "deposit": 0,
+    "closingBalance": 223320.88,
+    "type": "debit"
+  },
+  {
+    "date": "01/10/25",
+    "narration": "INTEREST PAID TILL 30-SEP-2025",
+    "referenceNumber": "000000000000000",
+    "valueDate": "30/09/25",
+    "withdrawal": 0,
+    "deposit": 1165,
+    "closingBalance": 224485.88,
+    "type": "credit"
+  }
+]

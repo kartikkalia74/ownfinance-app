@@ -1,0 +1,25 @@
+# Test files
+test.js
+*.test.js
+*.spec.js
+
+# Debug/output files
+cleanText.json
+cleanText.txt
+pdf.json
+transactions.json
+
+# Development files
+*.md
+!README.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+

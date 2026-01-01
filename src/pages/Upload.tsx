@@ -1,34 +1,61 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload as UploadIcon, FileUp, Check, X, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { parseCSV, ParsedTransaction } from '@/utils/parser';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parseCSV, parsePDF, ParsedTransaction } from '@/utils/parser';
 import { exec } from '@/db/sqlite';
 import { useNavigate } from 'react-router-dom';
 
+interface Category {
+    id: string;
+    name: string;
+}
+
 export default function Upload() {
     const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            const result = await exec("SELECT id, name FROM categories ORDER BY name ASC");
+            setCategories(result.map((r: any) => ({ id: r[0], name: r[1] })));
+        };
+        fetchCategories();
+    }, []);
+
+    const [statementType, setStatementType] = useState<string>('phonepe');
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         setIsProcessing(true);
         try {
             const file = acceptedFiles[0];
-            const parsed = await parseCSV(file);
+            let parsed: ParsedTransaction[] = [];
+
+            if (file.type === 'application/pdf') {
+                parsed = await parsePDF(file, statementType);
+            } else {
+                parsed = await parseCSV(file);
+            }
+
             setTransactions(parsed);
         } catch (error) {
-            console.error('Failed to parse CSV', error);
-            alert('Error parsing CSV file');
+            console.error('Failed to parse file', error);
+            alert('Error parsing file');
         } finally {
             setIsProcessing(false);
         }
-    }, []);
+    }, [statementType]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: { 'text/csv': ['.csv'] },
+        accept: {
+            'text/csv': ['.csv'],
+            'application/pdf': ['.pdf']
+        },
         maxFiles: 1
     });
 
@@ -53,6 +80,10 @@ export default function Upload() {
         }
     };
 
+    const updateTransaction = (index: number, field: keyof ParsedTransaction, value: any) => {
+        setTransactions(prev => prev.map((tx, i) => i === index ? { ...tx, [field]: value } : tx));
+    };
+
     const removeTransaction = (index: number) => {
         setTransactions(prev => prev.filter((_, i) => i !== index));
     };
@@ -61,8 +92,28 @@ export default function Upload() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight text-gray-900">Import Transactions</h1>
-                <p className="text-gray-500 mt-1">Upload your bank statements (CSV) to bulk import transactions.</p>
+                <p className="text-gray-500 mt-1">Upload your bank statements (CSV or PDF) to bulk import transactions.</p>
             </div>
+
+            {/* Bank Selection */}
+            {transactions.length === 0 && (
+                <div className="w-full max-w-xs">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Statement Source</label>
+                    <Select value={statementType} onValueChange={setStatementType}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select Bank / Source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="phonepe">PhonePe</SelectItem>
+                            <SelectItem value="hdfc">HDFC Bank</SelectItem>
+                            <SelectItem value="hdfc-credit-card">HDFC Credit Card</SelectItem>
+                            <SelectItem value="sbi">SBI</SelectItem>
+                            <SelectItem value="icici">ICICI Bank</SelectItem>
+                            <SelectItem value="generic">Auto-detect (Generic)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             {transactions.length === 0 ? (
                 <Card className="border-2 border-dashed border-gray-200">
@@ -75,10 +126,10 @@ export default function Upload() {
                             <UploadIcon className="w-8 h-8" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                            {isDragActive ? "Drop the CSV here" : "Click to upload or drag and drop"}
+                            {isDragActive ? "Drop the file here" : "Click to upload or drag and drop"}
                         </h3>
                         <p className="text-gray-500 text-sm mt-2">
-                            Supported Format: CSV (Date, Description, Amount, Category)
+                            Supported Formats: CSV, PDF (HDFC, ICICI, etc.)
                         </p>
                     </CardContent>
                 </Card>
@@ -104,7 +155,6 @@ export default function Upload() {
                                     <th className="px-4 py-3 font-medium">Description</th>
                                     <th className="px-4 py-3 font-medium">Category</th>
                                     <th className="px-4 py-3 font-medium text-right">Amount</th>
-                                    <th className="px-4 py-3 font-medium">Type</th>
                                     <th className="px-4 py-3 font-medium w-10"></th>
                                 </tr>
                             </thead>
@@ -114,14 +164,20 @@ export default function Upload() {
                                         <td className="px-4 py-3">{tx.date}</td>
                                         <td className="px-4 py-3 font-medium text-gray-900">{tx.payee}</td>
                                         <td className="px-4 py-3">
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                {tx.category}
-                                            </span>
+                                            <select
+                                                value={tx.category}
+                                                onChange={(e) => updateTransaction(i, 'category', e.target.value)}
+                                                className="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
+                                            >
+                                                <option value="Uncategorized">Uncategorized</option>
+                                                {categories.map(cat => (
+                                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                ))}
+                                            </select>
                                         </td>
-                                        <td className="px-4 py-3 text-right font-mono">
-                                            {tx.amount.toFixed(2)}
+                                        <td className={`px-4 py-3 text-right font-mono font-medium ${tx.type === 'expense' ? 'text-red-600' : 'text-green-600'}`}>
+                                            {tx.type === 'expense' ? '-' : '+'}{tx.amount.toFixed(2)}
                                         </td>
-                                        <td className="px-4 py-3 capitalize">{tx.type}</td>
                                         <td className="px-4 py-3 text-right">
                                             <button
                                                 onClick={() => removeTransaction(i)}

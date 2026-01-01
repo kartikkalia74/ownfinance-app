@@ -41,6 +41,7 @@ export const initDB = async () => {
                     amount REAL NOT NULL,
                     type TEXT NOT NULL, -- 'income', 'expense', 'transfer'
                     status TEXT DEFAULT 'completed',
+                    source TEXT,
                     notes TEXT
                 );
 
@@ -114,6 +115,8 @@ export const initDB = async () => {
                 await _promiser('exec', { sql: "ALTER TABLE contacts ADD COLUMN mobile TEXT" }).catch(() => { });
                 // Attempt to add notes column
                 await _promiser('exec', { sql: "ALTER TABLE contacts ADD COLUMN notes TEXT" }).catch(() => { });
+                // Attempt to add source column to transactions
+                await _promiser('exec', { sql: "ALTER TABLE transactions ADD COLUMN source TEXT" }).catch(() => { });
             } catch (ignored) {
                 // Ignore errors if columns already exist
             }

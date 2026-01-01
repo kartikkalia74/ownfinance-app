@@ -1,0 +1,31 @@
+{
+  "name": "hdfc-statement-parser",
+  "version": "1.0.0",
+  "description": "Parse HDFC bank statements and extract transaction data",
+  "main": "index.js",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "hdfc",
+    "bank",
+    "statement",
+    "parser",
+    "transactions",
+    "pdf"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
+

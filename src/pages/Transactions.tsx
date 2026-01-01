@@ -19,6 +19,7 @@ interface Transaction {
     amount: number
     status: string
     type: string
+    source?: string
 }
 
 const CATEGORIES = [
@@ -40,7 +41,7 @@ export default function Transactions() {
     const fetchTransactions = async () => {
         try {
             setIsLoading(true);
-            let query = "SELECT id, date, payee, category, amount, status, type FROM transactions WHERE 1=1";
+            let query = "SELECT id, date, payee, category, amount, status, type, source FROM transactions WHERE 1=1";
             const params: any[] = [];
 
             // 1. Date Filter (Filter by selected Month & Year)
@@ -78,7 +79,8 @@ export default function Transactions() {
                 category: r[3],
                 amount: r[4],
                 status: r[5],
-                type: r[6]
+                type: r[6],
+                source: r[7]
             }));
             setTransactions(parsedTransactions);
         } catch (error) {
@@ -115,7 +117,11 @@ export default function Transactions() {
                 <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
                     <Mail className="w-4 h-4" /> Import From Email
                 </Button>
-                <Button variant="secondary" className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200">
+                <Button
+                    variant="secondary"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
+                    onClick={() => navigate('/upload')}
+                >
                     <FileText className="w-4 h-4" /> Upload PDF
                 </Button>
                 <Button
@@ -226,6 +232,7 @@ export default function Transactions() {
                         <thead>
                             <tr className="border-b border-gray-100">
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payee</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
@@ -236,16 +243,23 @@ export default function Transactions() {
                         <tbody className="divide-y divide-gray-50 bg-white text-sm">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
+                                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
                                 </tr>
                             ) : transactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
+                                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
                                 </tr>
                             ) : (
                                 transactions.map((tx) => (
                                     <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {tx.source ? (
+                                                <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
+                                                    {tx.source}
+                                                </Badge>
+                                            ) : <span className="text-gray-400">-</span>}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Badge
