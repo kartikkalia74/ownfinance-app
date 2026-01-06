@@ -1,4 +1,7 @@
+// @ts-expect-error - The type definition is missing this export, but it exists at runtime.
 import { sqlite3Worker1Promiser } from '@sqlite.org/sqlite-wasm';
+
+const promiserFactory = sqlite3Worker1Promiser;
 
 let promiserPromise: Promise<any> | null = null;
 let promiser: any = null;
@@ -11,7 +14,7 @@ export const initDB = async () => {
 
     promiserPromise = new Promise(async (resolve, reject) => {
         try {
-            const _promiser = await sqlite3Worker1Promiser({
+            const _promiser = await promiserFactory({
                 onready: () => console.log('SQLite Worker Ready Event'),
                 worker: () => {
                     const w = new Worker('/finance-worker.js');
@@ -132,6 +135,27 @@ export const initDB = async () => {
     return promiserPromise;
 };
 
+
+let listeners: (() => void)[] = [];
+
+/**
+ * Validates if the database is effectively empty (only meta tables exist) 
+ * or has real user data.
+ */
+export const isDbEmpty = async () => {
+    // Check if we have transactions
+    const result = await exec("SELECT count(*) as count FROM transactions");
+    const count = result[0][0];
+    return count === 0;
+};
+
+export const subscribeToChanges = (callback: () => void) => {
+    listeners.push(callback);
+    return () => {
+        listeners = listeners.filter(l => l !== callback);
+    };
+};
+
 export const exec = async (sql: string, bind?: any[]) => {
     // If promiser is not ready, wait for it
     if (!promiser && promiserPromise) {
@@ -146,10 +170,56 @@ export const exec = async (sql: string, bind?: any[]) => {
         returnValue: 'resultRows'
     });
 
+    // Notify listeners on write operations
+    // We check for INSERT, UPDATE, DELETE, or REPLACE at the start of the string
+    if (/^\s*(INSERT|UPDATE|DELETE|REPLACE|ALTER|DROP)/i.test(sql)) {
+        listeners.forEach(cb => cb());
+    }
+
     return response.result.resultRows;
 }
 
-// Deprecated access, removed.
-export const getDB = () => {
-    throw new Error('Direct DB access not available in Worker mode. Use exec().');
-}
+export const exportDB = async (): Promise<Uint8Array> => {
+    try {
+        const root = await navigator.storage.getDirectory();
+        // Check if file exists first to avoid error? 
+        // getFileHandle throws if not found without {create: true}
+        const fileHandle = await root.getFileHandle('finance_db.sqlite3');
+        const file = await fileHandle.getFile();
+        return new Uint8Array(await file.arrayBuffer());
+    } catch (err) {
+        console.error('Export DB Failed:', err);
+        throw err;
+    }
+};
+
+export const importDB = async (data: Uint8Array): Promise<void> => {
+    if (!promiser) throw new Error('DB not initialized');
+
+    console.log('Importing Database...');
+
+    // 1. Close the current database connection to release locks
+    // The default worker1 implementation supports 'close'
+    try {
+        await promiser('close');
+        console.log('Database closed for import.');
+    } catch (e) {
+        console.warn('Failed to close DB (strictly expected if open):', e);
+    }
+
+    // 2. Overwrite the file in OPFS
+    const root = await navigator.storage.getDirectory();
+    const fileHandle = await root.getFileHandle('finance_db.sqlite3', { create: true });
+
+    // @ts-ignore - createWritable is standard in OPFS context
+    const writable = await fileHandle.createWritable();
+    await writable.write(data as any);
+    await writable.close();
+    console.log('Database file overwritten.');
+
+    // 3. Re-open the database
+    await promiser('open', {
+        filename: 'file:finance_db.sqlite3?vfs=opfs',
+    });
+    console.log('Database re-opened.');
+};

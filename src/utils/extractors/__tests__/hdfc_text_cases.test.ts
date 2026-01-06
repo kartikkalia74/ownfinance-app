@@ -1,5 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
+// @ts-ignore
 import { extractTransactionsAdvanced } from '../../statementparser/hdfc-statement-parser/rejex.js';
 
 describe('HDFC Advanced Text Extraction', () => {

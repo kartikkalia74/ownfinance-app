@@ -20,4 +20,8 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@sqlite.org/sqlite-wasm"],
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 })

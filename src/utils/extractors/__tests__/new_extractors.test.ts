@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GenericExtractor, HDFCExtractor, HDFCAdvancedExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor } from '../index';
+import { HDFCAdvancedExtractor, PhonePeExtractor } from '../index';
 
 // ... existing tests ...
 

@@ -1,4 +1,4 @@
-import { ParsedTransaction } from '../parser';
+import type { ParsedTransaction } from '../parser';
 import { HDFCExtractor } from './hdfc';
 import { HDFCAdvancedExtractor } from './hdfcAdvanced';
 import { ICICIExtractor } from './icici';
@@ -48,5 +48,6 @@ const GenericExtractor: StatementExtractor = {
 
 
 import { HDFCCreditCardExtractor } from './hdfcCreditCard';
+import { GPayExtractor } from './gpay';
 
-export { HDFCExtractor, HDFCCreditCardExtractor, HDFCAdvancedExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor, GenericExtractor };
+export { HDFCExtractor, HDFCCreditCardExtractor, HDFCAdvancedExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor, GenericExtractor, GPayExtractor };

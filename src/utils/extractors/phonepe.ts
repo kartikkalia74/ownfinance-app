@@ -1,5 +1,5 @@
-import { StatementExtractor } from './index';
-import { ParsedTransaction } from '../parser';
+import type { StatementExtractor } from './index';
+import type { ParsedTransaction } from '../parser';
 
 export const PhonePeExtractor: StatementExtractor = {
     name: 'PhonePe',

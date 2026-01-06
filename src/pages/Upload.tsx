@@ -4,7 +4,8 @@ import { Upload as UploadIcon, FileUp, Check, X, AlertCircle } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { parseCSV, parsePDF, ParsedTransaction } from '@/utils/parser';
+import { parseCSV, parsePDF } from '@/utils/parser';
+import type { ParsedTransaction } from '@/utils/parser';
 import { exec } from '@/db/sqlite';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,6 +106,7 @@ export default function Upload() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="phonepe">PhonePe</SelectItem>
+                            <SelectItem value="gpay">Google Pay</SelectItem>
                             <SelectItem value="hdfc">HDFC Bank</SelectItem>
                             <SelectItem value="hdfc-credit-card">HDFC Credit Card</SelectItem>
                             <SelectItem value="sbi">SBI</SelectItem>

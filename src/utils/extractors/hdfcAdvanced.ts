@@ -1,5 +1,5 @@
-import { StatementExtractor } from './index';
-import { ParsedTransaction } from '../parser';
+import type { StatementExtractor } from './index';
+// @ts-ignore
 import { extractTransactionsAdvanced } from '../statementparser/hdfc-statement-parser/rejex.js';
 
 export const HDFCAdvancedExtractor: StatementExtractor = {

@@ -1,6 +1,14 @@
 import * as Papa from 'papaparse';
 import * as pdfjs from 'pdfjs-dist';
-import { HDFCExtractor, HDFCAdvancedExtractor, HDFCCreditCardExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor, GenericExtractor, StatementExtractor } from './extractors';
+import { HDFCExtractor } from './extractors/hdfc';
+import { HDFCAdvancedExtractor } from './extractors/hdfcAdvanced';
+import { HDFCCreditCardExtractor } from './extractors/hdfcCreditCard';
+import { ICICIExtractor } from './extractors/icici';
+import { SBIExtractor } from './extractors/sbi';
+import { PhonePeExtractor } from './extractors/phonepe';
+import { GenericExtractor } from './extractors/index';
+import { GPayExtractor } from './extractors/gpay';
+import type { StatementExtractor } from './extractors/index';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -111,6 +119,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
         'icici': ICICIExtractor,
         'sbi': SBIExtractor,
         'phonepe': PhonePeExtractor,
+        'gpay': GPayExtractor,
         'generic': GenericExtractor
     };
 

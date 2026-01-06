@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
-import * as path from 'path';
+// @ts-ignore
 import { parsePDF } from '../../statementparser/hdfc-statement-parser/index.js';
 import { HDFCAdvancedExtractor } from '../hdfcAdvanced';
 

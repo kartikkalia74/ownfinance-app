@@ -10,8 +10,10 @@ import Login from './pages/Login'
 import Categories from './pages/Categories'
 import Upload from './pages/Upload'
 import RequireAuth from './components/auth/RequireAuth'
+import { useDriveSync } from './hooks/useDriveSync'
 
 function App() {
+  useDriveSync();
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {

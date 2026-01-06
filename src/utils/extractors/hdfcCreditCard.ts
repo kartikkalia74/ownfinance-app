@@ -1,6 +1,6 @@
 
-import { StatementExtractor } from './index';
-import { ParsedTransaction } from '../parser';
+import type { StatementExtractor } from './index';
+import type { ParsedTransaction } from '../parser';
 
 // Format: DD/MM/YYYY| HH:MM DESCRIPTION [+ ]C AMOUNT l
 const DOMESTIC_TRANSACTION_REGEX = /(\d{2}\/\d{2}\/\d{4})\|\s+(\d{2}:\d{2})\s+(.+?)\s+\+?\s*C\s+([\d,]+\.\d{2})\s+l/g;

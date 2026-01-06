@@ -1,5 +1,5 @@
-import { StatementExtractor } from './index';
-import { ParsedTransaction } from '../parser';
+import type { StatementExtractor } from './index';
+import type { ParsedTransaction } from '../parser';
 
 export const HDFCExtractor: StatementExtractor = {
     name: 'HDFC Bank',
@@ -23,7 +23,7 @@ export const HDFCExtractor: StatementExtractor = {
         for (const line of lines) {
             const match = line.trim().match(rowRegex);
             if (match) {
-                const [_, date, desc, ref, vDate, debitStr, creditStr] = match;
+                const [_, date, desc, debitStr, creditStr] = match;
 
                 const debit = parseFloat(debitStr || '0');
                 const credit = parseFloat(creditStr || '0');
