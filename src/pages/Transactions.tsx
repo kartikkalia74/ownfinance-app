@@ -30,7 +30,7 @@ const CATEGORIES = [
 ]
 
 export default function Transactions() {
-    const [date, setDate] = useState<Date | undefined>(new Date())
+    const [date, setDate] = useState<Date | undefined>()
     const [amountRange, setAmountRange] = useState([0, 5000]) // Increased default max
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [transactions, setTransactions] = useState<Transaction[]>([])
