@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp } from "lucide-react"
+import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
 import { TransactionDialog } from "@/components/transactions/TransactionDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -85,9 +85,9 @@ export default function Transactions() {
 
             // 3. Amount Filter (Absolute value to handle expenses being negative)
             // Range is [min, max]. 
-            query += ` AND ABS(amount) BETWEEN ? AND ?`;
-            params.push(amountRange[0]);
-            params.push(amountRange[1]);
+            // query += ` AND ABS(amount) BETWEEN ? AND ?`;
+            // params.push(amountRange[0]);
+            // params.push(amountRange[1]);
 
             query += " ORDER BY date DESC";
 
@@ -107,6 +107,17 @@ export default function Transactions() {
             console.error("Failed to fetch transactions", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const deleteTransaction = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        try {
+            await exec("DELETE FROM transactions WHERE id = ?", [id]);
+            setTransactions(prev => prev.filter(tx => tx.id !== id));
+        } catch (error) {
+            console.error("Failed to delete transaction", error);
+            alert("Failed to delete transaction");
         }
     };
 
@@ -315,9 +326,17 @@ export default function Transactions() {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <button className="text-gray-400 hover:text-gray-600">
-                                                        <Pencil className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <button className="text-gray-400 hover:text-gray-600">
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className="text-gray-400 hover:text-red-500"
+                                                            onClick={() => deleteTransaction(tx.id)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -389,6 +408,12 @@ export default function Transactions() {
                                                         <td className="px-6 py-3 whitespace-nowrap text-right">
                                                             <button className="text-gray-300 hover:text-gray-500">
                                                                 <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                className="text-gray-300 hover:text-red-500"
+                                                                onClick={() => deleteTransaction(tx.id)}
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
                                                             </button>
                                                         </td>
                                                     </tr>
