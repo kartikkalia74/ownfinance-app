@@ -83,9 +83,9 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
             const categoryName = selectedCat ? selectedCat.name : "Uncategorized";
 
             await exec(`
-            INSERT INTO transactions (id, date, payee, category, amount, type, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'completed')
-        `, [id, date, payee, categoryName, dbAmount, type]);
+            INSERT INTO transactions (id, date, payee, category, amount, type, status, source)
+            VALUES (?, ?, ?, ?, ?, ?, 'completed', ?)
+        `, [id, date, payee, categoryName, dbAmount, type, 'manual']);
 
             onSave();
             onOpenChange(false);

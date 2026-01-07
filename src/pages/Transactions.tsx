@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil } from "lucide-react"
+import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp } from "lucide-react"
 import { TransactionDialog } from "@/components/transactions/TransactionDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,7 +36,27 @@ export default function Transactions() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
     const navigate = useNavigate();
+
+    // Grouping Logic
+    const groupedTransactions = transactions.reduce((acc, tx) => {
+        // Group by Date + Amount + Type
+        const key = `${tx.date}|${Math.abs(tx.amount).toFixed(2)}|${tx.type}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(tx);
+        return acc;
+    }, {} as Record<string, Transaction[]>);
+
+    const toggleGroup = (key: string) => {
+        const newExpanded = new Set(expandedGroups);
+        if (newExpanded.has(key)) {
+            newExpanded.delete(key);
+        } else {
+            newExpanded.add(key);
+        }
+        setExpandedGroups(newExpanded);
+    };
 
     const fetchTransactions = async () => {
         try {
@@ -250,53 +270,133 @@ export default function Transactions() {
                                     <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
                                 </tr>
                             ) : (
-                                transactions.map((tx) => (
-                                    <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {tx.source ? (
-                                                <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
-                                                    {tx.source}
-                                                </Badge>
-                                            ) : <span className="text-gray-400">-</span>}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge
-                                                variant="secondary"
-                                                className={cn(
-                                                    "font-normal",
-                                                    tx.category === "Groceries" && "bg-blue-50 text-blue-700",
-                                                    tx.category === "Transport" && "bg-orange-50 text-orange-700",
-                                                    tx.category === "Income" && "bg-green-50 text-green-700",
-                                                    tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
-                                                    tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
-                                                )}
-                                            >
-                                                {tx.category}
-                                            </Badge>
-                                        </td>
-                                        <td className={cn(
-                                            "px-6 py-4 whitespace-nowrap text-right font-medium",
-                                            tx.type === 'income' ? "text-green-600" : "text-gray-900"
-                                        )}>
-                                            {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <Badge variant="outline" className={cn(
-                                                "font-medium border-0 px-3 py-1",
-                                                tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                            )}>
-                                                {tx.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button className="text-gray-400 hover:text-gray-600">
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                Object.entries(groupedTransactions).map(([key, group]) => {
+                                    // If single transaction, render normally
+                                    if (group.length === 1) {
+                                        const tx = group[0];
+                                        return (
+                                            <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {tx.source ? (
+                                                        <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
+                                                            {tx.source}
+                                                        </Badge>
+                                                    ) : <span className="text-gray-400">-</span>}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={cn(
+                                                            "font-normal",
+                                                            tx.category === "Groceries" && "bg-blue-50 text-blue-700",
+                                                            tx.category === "Transport" && "bg-orange-50 text-orange-700",
+                                                            tx.category === "Income" && "bg-green-50 text-green-700",
+                                                            tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                            tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                        )}
+                                                    >
+                                                        {tx.category}
+                                                    </Badge>
+                                                </td>
+                                                <td className={cn(
+                                                    "px-6 py-4 whitespace-nowrap text-right font-medium",
+                                                    tx.type === 'income' ? "text-green-600" : "text-gray-900"
+                                                )}>
+                                                    {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <Badge variant="outline" className={cn(
+                                                        "font-medium border-0 px-3 py-1",
+                                                        tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                                                    )}>
+                                                        {tx.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    <button className="text-gray-400 hover:text-gray-600">
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    } else {
+                                        // Render Merged Row
+                                        const firstTx = group[0];
+                                        const isExpanded = expandedGroups.has(key);
+                                        return (
+                                            <>
+                                                <tr key={key} className="bg-gray-50/80 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => toggleGroup(key)}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">
+                                                        <div className="flex items-center gap-2">
+                                                            {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                                                            {firstTx.date}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center gap-1.5 text-blue-600 font-medium text-xs bg-blue-50 px-2 py-1 rounded w-fit">
+                                                            <Layers className="w-3.5 h-3.5" />
+                                                            Merged ({group.length})
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 italic">
+                                                        Multiple Payees
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <Badge variant="outline" className="text-gray-500 border-dashed border-gray-300">
+                                                            Mixed Categories
+                                                        </Badge>
+                                                    </td>
+                                                    <td className={cn(
+                                                        "px-6 py-4 whitespace-nowrap text-right font-bold",
+                                                        firstTx.type === 'income' ? "text-green-700" : "text-gray-900"
+                                                    )}>
+                                                        {firstTx.type === 'income' ? '+' : ''}₹{Math.abs(firstTx.amount).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        -
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    </td>
+                                                </tr>
+                                                {/* Expanded Rows */}
+                                                {isExpanded && group.map((tx, idx) => (
+                                                    <tr key={tx.id} className="bg-white border-l-4 border-blue-100 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <td className="px-6 py-3 pl-10 whitespace-nowrap text-gray-500 text-xs font-mono">
+                                                            ↳ {tx.date}
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap">
+                                                            {tx.source ? (
+                                                                <span className="text-gray-500 text-xs">
+                                                                    {tx.source}
+                                                                </span>
+                                                            ) : <span className="text-gray-300">-</span>}
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-gray-700 text-sm">{tx.payee}</td>
+                                                        <td className="px-6 py-3 whitespace-nowrap">
+                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                                {tx.category}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-right text-sm text-gray-500">
+                                                            {/* Amount repeated for clarity, or can be blank */}
+                                                            ₹{Math.abs(tx.amount).toFixed(2)}
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-center">
+                                                            <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-right">
+                                                            <button className="text-gray-300 hover:text-gray-500">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        );
+                                    }
+                                })
                             )}
                         </tbody>
                     </table>
