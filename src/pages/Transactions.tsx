@@ -31,6 +31,7 @@ const CATEGORIES = [
 
 export default function Transactions() {
     const [date, setDate] = useState<Date | undefined>()
+    const [maxAmount, setMaxAmount] = useState(5000)
     const [amountRange, setAmountRange] = useState([0, 5000]) // Increased default max
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -85,9 +86,9 @@ export default function Transactions() {
 
             // 3. Amount Filter (Absolute value to handle expenses being negative)
             // Range is [min, max]. 
-            // query += ` AND ABS(amount) BETWEEN ? AND ?`;
-            // params.push(amountRange[0]);
-            // params.push(amountRange[1]);
+            query += ` AND ABS(amount) BETWEEN ? AND ?`;
+            params.push(amountRange[0]);
+            params.push(amountRange[1]);
 
             query += " ORDER BY date DESC";
 
@@ -121,6 +122,23 @@ export default function Transactions() {
         }
     };
 
+    const fetchMaxAmount = async () => {
+        try {
+            const result = await exec("SELECT MAX(ABS(amount)) as max_amount FROM transactions");
+            const max = result[0][0] || 5000;
+            // Round up to nearest 100 or 1000 for cleaner UI
+            const roundedMax = Math.ceil(max / 100) * 100;
+            setMaxAmount(roundedMax);
+            setAmountRange([0, roundedMax]);
+        } catch (error) {
+            console.error("Failed to fetch max amount", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchMaxAmount();
+    }, []);
+
     useEffect(() => {
         fetchTransactions();
     }, [date, selectedCategory, amountRange]); // Re-fetch when filters change (debouncing slider might be needed for perf, but ok for now)
@@ -137,9 +155,7 @@ export default function Transactions() {
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={() => setIsAddDialogOpen(true)}>
                         <Plus className="w-4 h-4" /> Add Transaction
                     </Button>
-                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center border border-white shadow-sm">
-                        <span className="text-orange-600 font-bold">AJ</span>
-                    </div>
+
                 </div>
             </div>
 
@@ -177,7 +193,7 @@ export default function Transactions() {
                                 onClick={() => {
                                     setDate(new Date());
                                     setSelectedCategory("All");
-                                    setAmountRange([0, 5000]);
+                                    setAmountRange([0, maxAmount]);
                                 }}
                             >
                                 Reset
@@ -206,23 +222,23 @@ export default function Transactions() {
                             </button>
                         </div>
 
-                        {/* Range Slider */}
+                        Range Slider
                         <div className="space-y-4">
                             <div className="flex items-center justify-between text-sm font-medium text-gray-600">
                                 <span>Amount Range</span>
                                 <span className="text-blue-600">₹{amountRange[0]} - ₹{amountRange[1]}+</span>
                             </div>
                             <Slider
-                                defaultValue={[0, 5000]}
+                                defaultValue={[0, maxAmount]}
                                 value={amountRange}
                                 onValueChange={setAmountRange}
-                                max={5000}
+                                max={maxAmount}
                                 step={100}
                                 className="w-full"
                             />
                             <div className="flex justify-between text-xs text-gray-400">
                                 <span>₹0</span>
-                                <span>₹5000+</span>
+                                <span>₹{maxAmount}+</span>
                             </div>
                         </div>
                     </div>
@@ -430,7 +446,10 @@ export default function Transactions() {
             <TransactionDialog
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
-                onSave={fetchTransactions}
+                onSave={() => {
+                    fetchTransactions();
+                    fetchMaxAmount();
+                }}
             />
         </div>
     )
