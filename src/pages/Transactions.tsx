@@ -321,7 +321,6 @@ export default function Transactions() {
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payee</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
                             </tr>
                         </thead>
@@ -440,14 +439,7 @@ export default function Transactions() {
                                                 )}>
                                                     {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <Badge variant="outline" className={cn(
-                                                        "font-medium border-0 px-3 py-1",
-                                                        tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                                    )}>
-                                                        {tx.status}
-                                                    </Badge>
-                                                </td>
+
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <button className="text-gray-400 hover:text-gray-600">
@@ -525,9 +517,7 @@ export default function Transactions() {
                                                             {/* Amount repeated for clarity, or can be blank */}
                                                             ₹{Math.abs(tx.amount).toFixed(2)}
                                                         </td>
-                                                        <td className="px-6 py-3 whitespace-nowrap text-center">
-                                                            <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                                                        </td>
+
                                                         <td className="px-6 py-3 whitespace-nowrap text-right">
                                                             <button className="text-gray-300 hover:text-gray-500">
                                                                 <Pencil className="w-3 h-3" />
