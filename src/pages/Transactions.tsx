@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { exec } from "@/db/sqlite"
@@ -22,28 +23,38 @@ interface Transaction {
     source?: string
 }
 
-const CATEGORIES = [
-    { label: "All", icon: SlidersHorizontal },
-    { label: "Groceries", icon: null },
-    { label: "Transport", icon: null },
-    { label: "Utilities", icon: null }
-]
-
 export default function Transactions() {
     const [date, setDate] = useState<Date | undefined>()
     const [maxAmount, setMaxAmount] = useState(5000)
     const [amountRange, setAmountRange] = useState([0, 5000]) // Increased default max
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [transactions, setTransactions] = useState<Transaction[]>([])
+    const [categories, setCategories] = useState<{ label: string, icon: any }[]>([
+        { label: "All", icon: SlidersHorizontal }
+    ])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+    const [groupBy, setGroupBy] = useState<'default' | 'month'>('default')
     const navigate = useNavigate();
 
     // Grouping Logic
     const groupedTransactions = transactions.reduce((acc, tx) => {
-        // Group by Date + Amount + Type
-        const key = `${tx.date}|${Math.abs(tx.amount).toFixed(2)}|${tx.type}`;
+        let key = "";
+        if (groupBy === 'month') {
+            // Group by Month (YYYY-MM)
+            // Check if date is YYYY-MM-DD
+            const d = new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+                key = format(d, 'MMMM yyyy');
+            } else {
+                key = "Unknown Date";
+            }
+        } else {
+            // Group by Date + Amount + Type (Smart Grouping)
+            key = `${tx.date}|${Math.abs(tx.amount).toFixed(2)}|${tx.type}`;
+        }
+
         if (!acc[key]) acc[key] = [];
         acc[key].push(tx);
         return acc;
@@ -59,6 +70,23 @@ export default function Transactions() {
         setExpandedGroups(newExpanded);
     };
 
+    const fetchCategories = async () => {
+        try {
+            const result = await exec("SELECT DISTINCT category FROM transactions ORDER BY category ASC");
+            const fetchedCategories = result.map((r: any) => ({
+                label: r[0],
+                icon: null
+            })).filter((c: any) => c.label);
+
+            setCategories([
+                { label: "All", icon: SlidersHorizontal },
+                ...fetchedCategories
+            ]);
+        } catch (error) {
+            console.error("Failed to fetch categories", error);
+        }
+    };
+
     const fetchTransactions = async () => {
         try {
             setIsLoading(true);
@@ -66,14 +94,7 @@ export default function Transactions() {
             const params: any[] = [];
 
             // 1. Date Filter (Filter by selected Month & Year)
-            // If a date is selected, we filter by that specific MONTH.
-            // If filtering by specific DAY is desired, we can change this logic.
-            // Given the UI shows "August 2024" in the header, let's assume filtering by Month.
             if (date) {
-                const startOfMonth = format(date, 'yyyy-MM-01');
-                // Calculate end of month roughly or strictly
-                // date-fns/endOfMonth would be better but keeping it simple with SQL for now or just string matching YYYY-MM
-                // Actually, simple string matching for YYYY-MM is easiest for SQLite text dates
                 const monthStr = format(date, 'yyyy-MM');
                 query += ` AND date LIKE '${monthStr}%'`;
             }
@@ -84,8 +105,7 @@ export default function Transactions() {
                 params.push(selectedCategory);
             }
 
-            // 3. Amount Filter (Absolute value to handle expenses being negative)
-            // Range is [min, max]. 
+            // 3. Amount Filter
             query += ` AND ABS(amount) BETWEEN ? AND ?`;
             params.push(amountRange[0]);
             params.push(amountRange[1]);
@@ -116,6 +136,7 @@ export default function Transactions() {
         try {
             await exec("DELETE FROM transactions WHERE id = ?", [id]);
             setTransactions(prev => prev.filter(tx => tx.id !== id));
+            fetchCategories();
         } catch (error) {
             console.error("Failed to delete transaction", error);
             alert("Failed to delete transaction");
@@ -126,7 +147,6 @@ export default function Transactions() {
         try {
             const result = await exec("SELECT MAX(ABS(amount)) as max_amount FROM transactions");
             const max = result[0][0] || 5000;
-            // Round up to nearest 100 or 1000 for cleaner UI
             const roundedMax = Math.ceil(max / 100) * 100;
             setMaxAmount(roundedMax);
             setAmountRange([0, roundedMax]);
@@ -137,11 +157,12 @@ export default function Transactions() {
 
     useEffect(() => {
         fetchMaxAmount();
+        fetchCategories();
     }, []);
 
     useEffect(() => {
         fetchTransactions();
-    }, [date, selectedCategory, amountRange]); // Re-fetch when filters change (debouncing slider might be needed for perf, but ok for now)
+    }, [date, selectedCategory, amountRange]);
 
     return (
         <div className="space-y-6">
@@ -155,29 +176,43 @@ export default function Transactions() {
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={() => setIsAddDialogOpen(true)}>
                         <Plus className="w-4 h-4" /> Add Transaction
                     </Button>
-
                 </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-wrap gap-3">
-                <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <Mail className="w-4 h-4" /> Import From Email
-                </Button>
-                <Button
-                    variant="secondary"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
-                    onClick={() => navigate('/upload')}
-                >
-                    <FileText className="w-4 h-4" /> Upload PDF
-                </Button>
-                <Button
-                    variant="secondary"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
-                    onClick={() => navigate('/upload')}
-                >
-                    <Upload className="w-4 h-4" /> Upload CSV
-                </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-3">
+                    <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                        <Mail className="w-4 h-4" /> Import From Email
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
+                        onClick={() => navigate('/upload')}
+                    >
+                        <FileText className="w-4 h-4" /> Upload PDF
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
+                        onClick={() => navigate('/upload')}
+                    >
+                        <Upload className="w-4 h-4" /> Upload CSV
+                    </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Group By:</span>
+                    <Select value={groupBy} onValueChange={(v: 'default' | 'month') => setGroupBy(v)}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="Group by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default">Daily (Smart)</SelectItem>
+                            <SelectItem value="month">Month</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {/* Filters Section */}
@@ -202,7 +237,7 @@ export default function Transactions() {
 
                         {/* Categories */}
                         <div className="flex flex-wrap gap-2">
-                            {CATEGORIES.map((cat, i) => (
+                            {categories.map((cat, i) => (
                                 <button
                                     key={cat.label}
                                     onClick={() => setSelectedCategory(cat.label)}
@@ -222,7 +257,7 @@ export default function Transactions() {
                             </button>
                         </div>
 
-                        Range Slider
+                        {/* Range Slider */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between text-sm font-medium text-gray-600">
                                 <span>Amount Range</span>
@@ -247,9 +282,12 @@ export default function Transactions() {
                     <div className="lg:w-[320px] shrink-0 border-l border-gray-100 lg:pl-8">
                         <div className="flex items-center justify-between mb-4">
                             <button><ChevronLeft className="w-4 h-4 text-gray-400" /></button>
-                            <span className="text-sm font-semibold text-gray-900">
-                                {date ? format(date, 'MMMM yyyy') : 'All Time'}
-                            </span>
+                            <div className="flex flex-col items-center">
+                                <span className="text-sm font-semibold text-gray-900">
+                                    {date ? format(date, 'MMMM yyyy') : 'All Time'}
+                                </span>
+                                <span className="text-xs text-gray-400 font-medium">Filter by Month</span>
+                            </div>
                             <button><ChevronRight className="w-4 h-4 text-gray-400" /></button>
                         </div>
                         <Calendar
@@ -298,6 +336,75 @@ export default function Transactions() {
                                 </tr>
                             ) : (
                                 Object.entries(groupedTransactions).map(([key, group]) => {
+                                    if (groupBy === 'month') {
+                                        // Monthly Group Rendering
+                                        return (
+                                            <>
+                                                <tr key={key} className="bg-gray-50 border-y border-gray-100">
+                                                    <td colSpan={7} className="px-6 py-3 text-sm font-semibold text-gray-800">
+                                                        {key} ({group.length})
+                                                    </td>
+                                                </tr>
+                                                {group.map(tx => (
+                                                    <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {tx.source ? (
+                                                                <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
+                                                                    {tx.source}
+                                                                </Badge>
+                                                            ) : <span className="text-gray-400">-</span>}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className={cn(
+                                                                    "font-normal",
+                                                                    tx.category === "Groceries" && "bg-blue-50 text-blue-700",
+                                                                    tx.category === "Transport" && "bg-orange-50 text-orange-700",
+                                                                    tx.category === "Income" && "bg-green-50 text-green-700",
+                                                                    tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                                    tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                                )}
+                                                            >
+                                                                {tx.category}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className={cn(
+                                                            "px-6 py-4 whitespace-nowrap text-right font-medium",
+                                                            tx.type === 'income' ? "text-green-600" : "text-gray-900"
+                                                        )}>
+                                                            {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <Badge variant="outline" className={cn(
+                                                                "font-medium border-0 px-3 py-1",
+                                                                tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                                                            )}>
+                                                                {tx.status}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button className="text-gray-400 hover:text-gray-600">
+                                                                    <Pencil className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    className="text-gray-400 hover:text-red-500"
+                                                                    onClick={() => deleteTransaction(tx.id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )
+                                    }
+
+                                    // Default / Smart Grouping Rendering
                                     // If single transaction, render normally
                                     if (group.length === 1) {
                                         const tx = group[0];
@@ -449,6 +556,7 @@ export default function Transactions() {
                 onSave={() => {
                     fetchTransactions();
                     fetchMaxAmount();
+                    fetchCategories();
                 }}
             />
         </div>
