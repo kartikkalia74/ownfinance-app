@@ -26,9 +26,7 @@ export default function Navbar() {
             <div className="container mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
-                        OF
-                    </span>
+                    <img src="/logos/logo.gif" alt="OwnFinance Tracker" className="w-8 h-8" />
                     <span className="text-xl font-bold text-gray-900 tracking-tight">OwnFinance Tracker</span>
                 </div>
 
