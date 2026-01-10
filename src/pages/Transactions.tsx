@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react"
-import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil } from "lucide-react"
+import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
 import { TransactionDialog } from "@/components/transactions/TransactionDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { exec } from "@/db/sqlite"
@@ -22,21 +23,69 @@ interface Transaction {
     source?: string
 }
 
-const CATEGORIES = [
-    { label: "All", icon: SlidersHorizontal },
-    { label: "Groceries", icon: null },
-    { label: "Transport", icon: null },
-    { label: "Utilities", icon: null }
-]
-
 export default function Transactions() {
     const [date, setDate] = useState<Date | undefined>()
+    const [maxAmount, setMaxAmount] = useState(5000)
     const [amountRange, setAmountRange] = useState([0, 5000]) // Increased default max
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [transactions, setTransactions] = useState<Transaction[]>([])
+    const [categories, setCategories] = useState<{ label: string, icon: any }[]>([
+        { label: "All", icon: SlidersHorizontal }
+    ])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+    const [groupBy, setGroupBy] = useState<'default' | 'month'>('default')
     const navigate = useNavigate();
+
+    // Grouping Logic
+    const groupedTransactions = transactions.reduce((acc, tx) => {
+        let key = "";
+        if (groupBy === 'month') {
+            // Group by Month (YYYY-MM)
+            // Check if date is YYYY-MM-DD
+            const d = new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+                key = format(d, 'MMMM yyyy');
+            } else {
+                key = "Unknown Date";
+            }
+        } else {
+            // Group by Date + Amount + Type (Smart Grouping)
+            key = `${tx.date}|${Math.abs(tx.amount).toFixed(2)}|${tx.type}`;
+        }
+
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(tx);
+        return acc;
+    }, {} as Record<string, Transaction[]>);
+
+    const toggleGroup = (key: string) => {
+        const newExpanded = new Set(expandedGroups);
+        if (newExpanded.has(key)) {
+            newExpanded.delete(key);
+        } else {
+            newExpanded.add(key);
+        }
+        setExpandedGroups(newExpanded);
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const result = await exec("SELECT DISTINCT category FROM transactions ORDER BY category ASC");
+            const fetchedCategories = result.map((r: any) => ({
+                label: r[0],
+                icon: null
+            })).filter((c: any) => c.label);
+
+            setCategories([
+                { label: "All", icon: SlidersHorizontal },
+                ...fetchedCategories
+            ]);
+        } catch (error) {
+            console.error("Failed to fetch categories", error);
+        }
+    };
 
     const fetchTransactions = async () => {
         try {
@@ -45,14 +94,7 @@ export default function Transactions() {
             const params: any[] = [];
 
             // 1. Date Filter (Filter by selected Month & Year)
-            // If a date is selected, we filter by that specific MONTH.
-            // If filtering by specific DAY is desired, we can change this logic.
-            // Given the UI shows "August 2024" in the header, let's assume filtering by Month.
             if (date) {
-                const startOfMonth = format(date, 'yyyy-MM-01');
-                // Calculate end of month roughly or strictly
-                // date-fns/endOfMonth would be better but keeping it simple with SQL for now or just string matching YYYY-MM
-                // Actually, simple string matching for YYYY-MM is easiest for SQLite text dates
                 const monthStr = format(date, 'yyyy-MM');
                 query += ` AND date LIKE '${monthStr}%'`;
             }
@@ -63,8 +105,7 @@ export default function Transactions() {
                 params.push(selectedCategory);
             }
 
-            // 3. Amount Filter (Absolute value to handle expenses being negative)
-            // Range is [min, max]. 
+            // 3. Amount Filter
             query += ` AND ABS(amount) BETWEEN ? AND ?`;
             params.push(amountRange[0]);
             params.push(amountRange[1]);
@@ -90,9 +131,38 @@ export default function Transactions() {
         }
     };
 
+    const deleteTransaction = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        try {
+            await exec("DELETE FROM transactions WHERE id = ?", [id]);
+            setTransactions(prev => prev.filter(tx => tx.id !== id));
+            fetchCategories();
+        } catch (error) {
+            console.error("Failed to delete transaction", error);
+            alert("Failed to delete transaction");
+        }
+    };
+
+    const fetchMaxAmount = async () => {
+        try {
+            const result = await exec("SELECT MAX(ABS(amount)) as max_amount FROM transactions");
+            const max = result[0][0] || 5000;
+            const roundedMax = Math.ceil(max / 100) * 100;
+            setMaxAmount(roundedMax);
+            setAmountRange([0, roundedMax]);
+        } catch (error) {
+            console.error("Failed to fetch max amount", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchMaxAmount();
+        fetchCategories();
+    }, []);
+
     useEffect(() => {
         fetchTransactions();
-    }, [date, selectedCategory, amountRange]); // Re-fetch when filters change (debouncing slider might be needed for perf, but ok for now)
+    }, [date, selectedCategory, amountRange]);
 
     return (
         <div className="space-y-6">
@@ -106,31 +176,43 @@ export default function Transactions() {
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={() => setIsAddDialogOpen(true)}>
                         <Plus className="w-4 h-4" /> Add Transaction
                     </Button>
-                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center border border-white shadow-sm">
-                        <span className="text-orange-600 font-bold">AJ</span>
-                    </div>
                 </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-wrap gap-3">
-                <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <Mail className="w-4 h-4" /> Import From Email
-                </Button>
-                <Button
-                    variant="secondary"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
-                    onClick={() => navigate('/upload')}
-                >
-                    <FileText className="w-4 h-4" /> Upload PDF
-                </Button>
-                <Button
-                    variant="secondary"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
-                    onClick={() => navigate('/upload')}
-                >
-                    <Upload className="w-4 h-4" /> Upload CSV
-                </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-3">
+                    <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                        <Mail className="w-4 h-4" /> Import From Email
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
+                        onClick={() => navigate('/upload')}
+                    >
+                        <FileText className="w-4 h-4" /> Upload PDF
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 gap-2 border border-gray-200"
+                        onClick={() => navigate('/upload')}
+                    >
+                        <Upload className="w-4 h-4" /> Upload CSV
+                    </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Group By:</span>
+                    <Select value={groupBy} onValueChange={(v: 'default' | 'month') => setGroupBy(v)}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="Group by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default">Daily (Smart)</SelectItem>
+                            <SelectItem value="month">Month</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
             {/* Filters Section */}
@@ -146,7 +228,7 @@ export default function Transactions() {
                                 onClick={() => {
                                     setDate(new Date());
                                     setSelectedCategory("All");
-                                    setAmountRange([0, 5000]);
+                                    setAmountRange([0, maxAmount]);
                                 }}
                             >
                                 Reset
@@ -155,7 +237,7 @@ export default function Transactions() {
 
                         {/* Categories */}
                         <div className="flex flex-wrap gap-2">
-                            {CATEGORIES.map((cat, i) => (
+                            {categories.map((cat, i) => (
                                 <button
                                     key={cat.label}
                                     onClick={() => setSelectedCategory(cat.label)}
@@ -182,16 +264,16 @@ export default function Transactions() {
                                 <span className="text-blue-600">₹{amountRange[0]} - ₹{amountRange[1]}+</span>
                             </div>
                             <Slider
-                                defaultValue={[0, 5000]}
+                                defaultValue={[0, maxAmount]}
                                 value={amountRange}
                                 onValueChange={setAmountRange}
-                                max={5000}
+                                max={maxAmount}
                                 step={100}
                                 className="w-full"
                             />
                             <div className="flex justify-between text-xs text-gray-400">
                                 <span>₹0</span>
-                                <span>₹5000+</span>
+                                <span>₹{maxAmount}+</span>
                             </div>
                         </div>
                     </div>
@@ -200,9 +282,12 @@ export default function Transactions() {
                     <div className="lg:w-[320px] shrink-0 border-l border-gray-100 lg:pl-8">
                         <div className="flex items-center justify-between mb-4">
                             <button><ChevronLeft className="w-4 h-4 text-gray-400" /></button>
-                            <span className="text-sm font-semibold text-gray-900">
-                                {date ? format(date, 'MMMM yyyy') : 'All Time'}
-                            </span>
+                            <div className="flex flex-col items-center">
+                                <span className="text-sm font-semibold text-gray-900">
+                                    {date ? format(date, 'MMMM yyyy') : 'All Time'}
+                                </span>
+                                <span className="text-xs text-gray-400 font-medium">Filter by Month</span>
+                            </div>
                             <button><ChevronRight className="w-4 h-4 text-gray-400" /></button>
                         </div>
                         <Calendar
@@ -236,7 +321,6 @@ export default function Transactions() {
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payee</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
                             </tr>
                         </thead>
@@ -250,53 +334,207 @@ export default function Transactions() {
                                     <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
                                 </tr>
                             ) : (
-                                transactions.map((tx) => (
-                                    <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {tx.source ? (
-                                                <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
-                                                    {tx.source}
-                                                </Badge>
-                                            ) : <span className="text-gray-400">-</span>}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge
-                                                variant="secondary"
-                                                className={cn(
-                                                    "font-normal",
-                                                    tx.category === "Groceries" && "bg-blue-50 text-blue-700",
-                                                    tx.category === "Transport" && "bg-orange-50 text-orange-700",
-                                                    tx.category === "Income" && "bg-green-50 text-green-700",
-                                                    tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
-                                                    tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
-                                                )}
-                                            >
-                                                {tx.category}
-                                            </Badge>
-                                        </td>
-                                        <td className={cn(
-                                            "px-6 py-4 whitespace-nowrap text-right font-medium",
-                                            tx.type === 'income' ? "text-green-600" : "text-gray-900"
-                                        )}>
-                                            {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <Badge variant="outline" className={cn(
-                                                "font-medium border-0 px-3 py-1",
-                                                tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                            )}>
-                                                {tx.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button className="text-gray-400 hover:text-gray-600">
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                Object.entries(groupedTransactions).map(([key, group]) => {
+                                    if (groupBy === 'month') {
+                                        // Monthly Group Rendering
+                                        return (
+                                            <>
+                                                <tr key={key} className="bg-gray-50 border-y border-gray-100">
+                                                    <td colSpan={7} className="px-6 py-3 text-sm font-semibold text-gray-800">
+                                                        {key} ({group.length})
+                                                    </td>
+                                                </tr>
+                                                {group.map(tx => (
+                                                    <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {tx.source ? (
+                                                                <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
+                                                                    {tx.source}
+                                                                </Badge>
+                                                            ) : <span className="text-gray-400">-</span>}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className={cn(
+                                                                    "font-normal",
+                                                                    tx.category === "Groceries" && "bg-blue-50 text-blue-700",
+                                                                    tx.category === "Transport" && "bg-orange-50 text-orange-700",
+                                                                    tx.category === "Income" && "bg-green-50 text-green-700",
+                                                                    tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                                    tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                                )}
+                                                            >
+                                                                {tx.category}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className={cn(
+                                                            "px-6 py-4 whitespace-nowrap text-right font-medium",
+                                                            tx.type === 'income' ? "text-green-600" : "text-gray-900"
+                                                        )}>
+                                                            {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <Badge variant="outline" className={cn(
+                                                                "font-medium border-0 px-3 py-1",
+                                                                tx.status === "completed" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                                                            )}>
+                                                                {tx.status}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button className="text-gray-400 hover:text-gray-600">
+                                                                    <Pencil className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    className="text-gray-400 hover:text-red-500"
+                                                                    onClick={() => deleteTransaction(tx.id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )
+                                    }
+
+                                    // Default / Smart Grouping Rendering
+                                    // If single transaction, render normally
+                                    if (group.length === 1) {
+                                        const tx = group[0];
+                                        return (
+                                            <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {tx.source ? (
+                                                        <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
+                                                            {tx.source}
+                                                        </Badge>
+                                                    ) : <span className="text-gray-400">-</span>}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={cn(
+                                                            "font-normal",
+                                                            tx.category === "Groceries" && "bg-blue-50 text-blue-700",
+                                                            tx.category === "Transport" && "bg-orange-50 text-orange-700",
+                                                            tx.category === "Income" && "bg-green-50 text-green-700",
+                                                            tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                            tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                        )}
+                                                    >
+                                                        {tx.category}
+                                                    </Badge>
+                                                </td>
+                                                <td className={cn(
+                                                    "px-6 py-4 whitespace-nowrap text-right font-medium",
+                                                    tx.type === 'income' ? "text-green-600" : "text-gray-900"
+                                                )}>
+                                                    {tx.type === 'income' ? '+' : ''}₹{Math.abs(tx.amount).toFixed(2)}
+                                                </td>
+
+                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button className="text-gray-400 hover:text-gray-600">
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            className="text-gray-400 hover:text-red-500"
+                                                            onClick={() => deleteTransaction(tx.id)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    } else {
+                                        // Render Merged Row
+                                        const firstTx = group[0];
+                                        const isExpanded = expandedGroups.has(key);
+                                        return (
+                                            <>
+                                                <tr key={key} className="bg-gray-50/80 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => toggleGroup(key)}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">
+                                                        <div className="flex items-center gap-2">
+                                                            {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                                                            {firstTx.date}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center gap-1.5 text-blue-600 font-medium text-xs bg-blue-50 px-2 py-1 rounded w-fit">
+                                                            <Layers className="w-3.5 h-3.5" />
+                                                            Merged ({group.length})
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 italic">
+                                                        Multiple Payees
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <Badge variant="outline" className="text-gray-500 border-dashed border-gray-300">
+                                                            Mixed Categories
+                                                        </Badge>
+                                                    </td>
+                                                    <td className={cn(
+                                                        "px-6 py-4 whitespace-nowrap text-right font-bold",
+                                                        firstTx.type === 'income' ? "text-green-700" : "text-gray-900"
+                                                    )}>
+                                                        {firstTx.type === 'income' ? '+' : ''}₹{Math.abs(firstTx.amount).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        -
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    </td>
+                                                </tr>
+                                                {/* Expanded Rows */}
+                                                {isExpanded && group.map((tx, idx) => (
+                                                    <tr key={tx.id} className="bg-white border-l-4 border-blue-100 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                        <td className="px-6 py-3 pl-10 whitespace-nowrap text-gray-500 text-xs font-mono">
+                                                            ↳ {tx.date}
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap">
+                                                            {tx.source ? (
+                                                                <span className="text-gray-500 text-xs">
+                                                                    {tx.source}
+                                                                </span>
+                                                            ) : <span className="text-gray-300">-</span>}
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-gray-700 text-sm">{tx.payee}</td>
+                                                        <td className="px-6 py-3 whitespace-nowrap">
+                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                                {tx.category}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-right text-sm text-gray-500">
+                                                            {/* Amount repeated for clarity, or can be blank */}
+                                                            ₹{Math.abs(tx.amount).toFixed(2)}
+                                                        </td>
+
+                                                        <td className="px-6 py-3 whitespace-nowrap text-right">
+                                                            <button className="text-gray-300 hover:text-gray-500">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                className="text-gray-300 hover:text-red-500"
+                                                                onClick={() => deleteTransaction(tx.id)}
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        );
+                                    }
+                                })
                             )}
                         </tbody>
                     </table>
@@ -305,7 +543,11 @@ export default function Transactions() {
             <TransactionDialog
                 open={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
-                onSave={fetchTransactions}
+                onSave={() => {
+                    fetchTransactions();
+                    fetchMaxAmount();
+                    fetchCategories();
+                }}
             />
         </div>
     )

@@ -113,7 +113,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
 
     // Available extractors
     const extractors: Record<string, StatementExtractor> = {
-        'hdfc': HDFCExtractor,
+        'hdfc': HDFCAdvancedExtractor,
         'hdfc-credit-card': HDFCCreditCardExtractor,
         'hdfc-advanced': HDFCAdvancedExtractor,
         'icici': ICICIExtractor,
