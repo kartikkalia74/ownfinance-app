@@ -11,6 +11,8 @@ import Categories from './pages/Categories'
 import Upload from './pages/Upload'
 import RequireAuth from './components/auth/RequireAuth'
 import { useDriveSync } from './hooks/useDriveSync'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 
 function App() {
   useDriveSync();
@@ -38,6 +40,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
 
         <Route element={<RequireAuth />}>
           <Route path="/" element={<AppLayout />}>
