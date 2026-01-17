@@ -15,6 +15,7 @@ The following features are planned for Phase 1:
 - **On transaction page show in date in text format like dec 20 or time ago for recent**: Improve date formatting to be more user-friendly (e.g., "Dec 20", "2 days ago").
 - **Approve google oauth**: Complete the verification process for Google OAuth.
 
+
 ---
 
 # React + TypeScript + Vite
