@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
+import { Search, Plus, Upload, Mail, FileText, Settings2, SlidersHorizontal, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Pencil, Layers, ChevronDown, ChevronUp, Trash2, Filter } from "lucide-react"
 import { TransactionDialog } from "@/components/transactions/TransactionDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +36,7 @@ export default function Transactions() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
     const [groupBy, setGroupBy] = useState<'default' | 'month'>('default')
+    const [isFiltersVisible, setIsFiltersVisible] = useState(true)
     const navigate = useNavigate();
 
     // Grouping Logic
@@ -202,6 +203,18 @@ export default function Transactions() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant={isFiltersVisible ? "default" : "outline"}
+                        className={cn(
+                            "gap-2",
+                            isFiltersVisible ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-gray-600 border-gray-300"
+                        )}
+                        onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+                    >
+                        <Filter className="w-4 h-4" />
+                        {isFiltersVisible ? "Hide Filters" : "Show Filters"}
+                    </Button>
+                    <div className="h-6 w-px bg-gray-200 mx-2" />
                     <span className="text-sm font-medium text-gray-600">Group By:</span>
                     <Select value={groupBy} onValueChange={(v: 'default' | 'month') => setGroupBy(v)}>
                         <SelectTrigger className="w-[140px]">
@@ -216,99 +229,101 @@ export default function Transactions() {
             </div>
 
             {/* Filters Section */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Left: Filters */}
-                    <div className="flex-1 space-y-8">
-                        {/* Header Filter Row */}
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-                            <button
-                                className="text-sm font-medium text-blue-600 hover:text-blue-700"
-                                onClick={() => {
-                                    setDate(new Date());
-                                    setSelectedCategory("All");
-                                    setAmountRange([0, maxAmount]);
-                                }}
-                            >
-                                Reset
-                            </button>
-                        </div>
-
-                        {/* Categories */}
-                        <div className="flex flex-wrap gap-2">
-                            {categories.map((cat, i) => (
+            {isFiltersVisible && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        {/* Left: Filters */}
+                        <div className="flex-1 space-y-8">
+                            {/* Header Filter Row */}
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
                                 <button
-                                    key={cat.label}
-                                    onClick={() => setSelectedCategory(cat.label)}
-                                    className={cn(
-                                        "px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2",
-                                        selectedCategory === cat.label
-                                            ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                    )}
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                                    onClick={() => {
+                                        setDate(new Date());
+                                        setSelectedCategory("All");
+                                        setAmountRange([0, maxAmount]);
+                                    }}
                                 >
-                                    {cat.icon && <cat.icon className="w-3 h-3" />}
-                                    {cat.label}
+                                    Reset
                                 </button>
-                            ))}
-                            <button className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">
-                                <Plus className="w-4 h-4" />
-                            </button>
+                            </div>
+
+                            {/* Categories */}
+                            <div className="flex flex-wrap gap-2">
+                                {categories.map((cat, i) => (
+                                    <button
+                                        key={cat.label}
+                                        onClick={() => setSelectedCategory(cat.label)}
+                                        className={cn(
+                                            "px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2",
+                                            selectedCategory === cat.label
+                                                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                        )}
+                                    >
+                                        {cat.icon && <cat.icon className="w-3 h-3" />}
+                                        {cat.label}
+                                    </button>
+                                ))}
+                                <button className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Range Slider */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+                                    <span>Amount Range</span>
+                                    <span className="text-blue-600">₹{amountRange[0]} - ₹{amountRange[1]}+</span>
+                                </div>
+                                <Slider
+                                    defaultValue={[0, maxAmount]}
+                                    value={amountRange}
+                                    onValueChange={setAmountRange}
+                                    max={maxAmount}
+                                    step={100}
+                                    className="w-full"
+                                />
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>₹0</span>
+                                    <span>₹{maxAmount}+</span>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Range Slider */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-sm font-medium text-gray-600">
-                                <span>Amount Range</span>
-                                <span className="text-blue-600">₹{amountRange[0]} - ₹{amountRange[1]}+</span>
+                        {/* Right: Calendar Widget */}
+                        <div className="lg:w-[320px] shrink-0 border-l border-gray-100 lg:pl-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <button><ChevronLeft className="w-4 h-4 text-gray-400" /></button>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-sm font-semibold text-gray-900">
+                                        {date ? format(date, 'MMMM yyyy') : 'All Time'}
+                                    </span>
+                                    <span className="text-xs text-gray-400 font-medium">Filter by Month</span>
+                                </div>
+                                <button><ChevronRight className="w-4 h-4 text-gray-400" /></button>
                             </div>
-                            <Slider
-                                defaultValue={[0, maxAmount]}
-                                value={amountRange}
-                                onValueChange={setAmountRange}
-                                max={maxAmount}
-                                step={100}
-                                className="w-full"
+                            <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={setDate}
+                                className="rounded-md border-none w-full flex justify-center"
+                                classNames={{
+                                    head_cell: "text-gray-400 font-normal text-[0.8rem]",
+                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                    day: cn(
+                                        "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-full",
+                                    ),
+                                    day_selected:
+                                        "bg-blue-600 text-white hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white",
+                                    day_today: "bg-gray-100 text-gray-900",
+                                }}
                             />
-                            <div className="flex justify-between text-xs text-gray-400">
-                                <span>₹0</span>
-                                <span>₹{maxAmount}+</span>
-                            </div>
                         </div>
-                    </div>
-
-                    {/* Right: Calendar Widget */}
-                    <div className="lg:w-[320px] shrink-0 border-l border-gray-100 lg:pl-8">
-                        <div className="flex items-center justify-between mb-4">
-                            <button><ChevronLeft className="w-4 h-4 text-gray-400" /></button>
-                            <div className="flex flex-col items-center">
-                                <span className="text-sm font-semibold text-gray-900">
-                                    {date ? format(date, 'MMMM yyyy') : 'All Time'}
-                                </span>
-                                <span className="text-xs text-gray-400 font-medium">Filter by Month</span>
-                            </div>
-                            <button><ChevronRight className="w-4 h-4 text-gray-400" /></button>
-                        </div>
-                        <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={setDate}
-                            className="rounded-md border-none w-full flex justify-center"
-                            classNames={{
-                                head_cell: "text-gray-400 font-normal text-[0.8rem]",
-                                cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                day: cn(
-                                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-full",
-                                ),
-                                day_selected:
-                                    "bg-blue-600 text-white hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white",
-                                day_today: "bg-gray-100 text-gray-900",
-                            }}
-                        />
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Transactions Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

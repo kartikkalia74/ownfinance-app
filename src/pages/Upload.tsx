@@ -4,6 +4,16 @@ import { Upload as UploadIcon, FileUp, Check, X, AlertCircle } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { parseCSV, parsePDF } from '@/utils/parser';
 import type { ParsedTransaction } from '@/utils/parser';
 import { exec } from '@/db/sqlite';
@@ -27,6 +37,14 @@ export default function Upload() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [existingSignatures, setExistingSignatures] = useState<Set<string>>(new Set());
+
+
+    // Password handling state
+    const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+    const [pdfPassword, setPdfPassword] = useState("");
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -48,10 +66,6 @@ export default function Upload() {
                 const signatures = new Set<string>();
                 result.forEach((r: any) => {
                     // Store strict signature: YYYY-MM-DD|AMOUNT|TYPE|PAYEE
-                    // We can derive partial signature from this later or store both if needed
-                    // Storing strict signature allows exact matching.
-                    // For partial matching, we can iterate or store simplified keys.
-                    // Let's store strict keys here.
                     signatures.add(`${r[0]}|${parseFloat(r[1]).toFixed(2)}|${r[2]}|${r[3]}`);
                 });
                 setExistingSignatures(signatures);
@@ -62,72 +76,107 @@ export default function Upload() {
         fetchExisting();
     }, []);
 
+    const processTransactions = useCallback((parsed: ParsedTransaction[]) => {
+        const processed: ParsedTransactionWithSelection[] = parsed.map(tx => {
+            const strictKey = `${tx.date}|${tx.amount.toFixed(2)}|${tx.type}|${tx.payee}`;
+            const isExactMatch = existingSignatures.has(strictKey);
+            let isDuplicate = false;
+
+            if (!isExactMatch) {
+                const partialKeyStart = `${tx.date}|${tx.amount.toFixed(2)}|${tx.type}|`;
+                for (const Sig of existingSignatures) {
+                    if (Sig.startsWith(partialKeyStart)) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+            }
+
+            return {
+                ...tx,
+                isDuplicate: isDuplicate,
+                isExactMatch,
+                selected: !isExactMatch
+            };
+        });
+        setTransactions(processed);
+    }, [existingSignatures]);
+
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
         setIsProcessing(true);
         try {
             const file = acceptedFiles[0];
             let parsed: ParsedTransaction[] = [];
 
+
+
             if (file.type === 'application/pdf') {
-                parsed = await parsePDF(file, statementType);
+                try {
+                    parsed = await parsePDF(file, statementType);
+                } catch (error: any) {
+                    if (error.name === 'PasswordException' || error.message?.includes('Password')) {
+                        console.log("Password protected PDF detected");
+                        setPendingFile(file);
+                        setShowPasswordDialog(true);
+                        setIsProcessing(false);
+                        return;
+                    }
+                    throw error;
+                }
             } else {
                 parsed = await parseCSV(file);
             }
 
-            const processed: ParsedTransactionWithSelection[] = parsed.map(tx => {
-                const strictKey = `${tx.date}|${tx.amount.toFixed(2)}|${tx.type}|${tx.payee}`;
-
-                // Check exact match first
-                const isExactMatch = existingSignatures.has(strictKey);
-
-                // key for partial match
-                // We need to check if ANY existing signature has this partial key
-                // Since existingSignatures is a Set of strict keys, we iterate? 
-                // Or we can just check if any existing signature startsWith partial key?
-                // Iterating massive set is bad. 
-                // Let's optimize: existingSignatures could be object with { partialKey: [payees] }?
-                // Or just keep two sets. 
-                // But for now, let's assume `existingSignatures` contains strict keys.
-                // We should probably change existingSignatures to store objects or two sets.
-                // Re-writing state above to store two sets would be cleaner but complex to diff.
-                // Let's rely on iteration for now if dataset is small, OR better:
-                // Let's just assume we store strict keys. 
-
-                // Actually, let's look at how we populate existingSignatures.
-                // If I change the useEffect to populate two sets that would be best.
-                // But I can't easily change the state definition line in this hunk.
-                // Wait, I can change the useEffect above.
-                // But current state is Set<string>.
-                // I will use iteration for now as it's safe for reasonable N.
-                // Optimization: Pre-compute partials in the map.
-
-                let isDuplicate = false;
-                if (!isExactMatch) {
-                    const partialKeyStart = `${tx.date}|${tx.amount.toFixed(2)}|${tx.type}|`;
-                    for (const Sig of existingSignatures) {
-                        if (Sig.startsWith(partialKeyStart)) {
-                            isDuplicate = true;
-                            break;
-                        }
-                    }
-                }
-
-                return {
-                    ...tx,
-                    isDuplicate: isDuplicate, // Only flag as potential duplicate if NOT exact match
-                    isExactMatch,
-                    selected: !isExactMatch // Unselected if exact match, selected otherwise
-                };
-            });
-
-            setTransactions(processed);
-        } catch (error) {
+            processTransactions(parsed);
+        } catch (error: any) {
             console.error('Failed to parse file', error);
             alert('Error parsing file');
         } finally {
+            if (!showPasswordDialog) {
+                setIsProcessing(false);
+            }
+            // Note: if showing password dialog, we keep processing state true or handle it there.
+            // Actually, in catch block above for password, we set isProcessing(false).
+            // So here we only setIsProcessing(false) if we didn't trigger password dialog?
+            // Let's refine the catch block logic in previous replacement.
+            // See earlier replacement of lines 65-72.
+            // It returns early on password exception.
+            // So this finally block runs only if no early return? 
+            // Wait, try-catch is inside onDrop? Yes.
+            // If I return early from catch, finally block still runs? YES.
+            // So I need to be careful.
+            // In the catch block I set setIsProcessing(false).
+            // In finally I should probably check if pendingFile is set.
+        }
+    }, [statementType, existingSignatures, processTransactions, showPasswordDialog]);
+
+    // Handle password submission
+    const handlePasswordSubmit = async () => {
+        if (!pendingFile || !pdfPassword) return;
+
+        setIsProcessing(true);
+        setErrorMessage(null);
+
+        try {
+            const parsed = await parsePDF(pendingFile, statementType, pdfPassword);
+            processTransactions(parsed);
+
+            // Success
+            setShowPasswordDialog(false);
+            setPendingFile(null);
+            setPdfPassword("");
+        } catch (error: any) {
+            console.error('Failed to parse PDF with password', error);
+            if (error.name === 'PasswordException' || error.message?.includes('Password')) {
+                setErrorMessage("Incorrect password. Please try again.");
+            } else {
+                setErrorMessage("Failed to parse PDF. The file might be corrupted.");
+            }
+        } finally {
             setIsProcessing(false);
         }
-    }, [statementType, existingSignatures]);
+    };
+
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -137,6 +186,33 @@ export default function Upload() {
         },
         maxFiles: 1
     });
+
+    // Update onDrop to use the extract processTransactions function logic if possible or keep duplicate
+    // To avoid massive refactor of onDrop, I'll copy the logic logic into onDrop as well OR refactor onDrop to use processTransactions.
+    // Given the multi-replace constraint, better to allow code duplication or small refactor.
+    // I noticed I already replaced the onDrop `parsed` logic mostly. 
+    // Wait, I inserted `processTransactions` definition BEFORE `onDrop` used it?
+    // StartLayout issue: `onDrop` is defined above this block.
+    // `onDrop` is lines 65-130. This replacement block is replacing lines 132-139 (Dropzone hook).
+    // So `processTransactions` is defined AFTER `onDrop`. That won't work if `onDrop` calls it.
+    // However, `onDrop` does NOT call `processTransactions` in my previous edit. It still has the logic inline.
+    // I should make `onDrop` use `processTransactions`.
+    // But `processTransactions` needs to be defined BEFORE `onDrop` or hoisted.
+
+    // Plan adjustment:
+    // 1. Define `processTransactions` using useCallback BEFORE `onDrop`.
+    // 2. Update `onDrop` to use `processTransactions`.
+    // 3. Add `handlePasswordSubmit`.
+
+    // I will execute this via separate tool calls or careful ordering.
+    // Since I cannot reorder already written code easily without big replacing, I'll do this:
+    // I'll replace the `useCallback` of `onDrop` to usage of `processTransactions`, AND define `processTransactions` before it.
+    // `onDrop` starts at line 65.
+    // So I need to insert `processTransactions` before line 65.
+
+    // Let's discard this chunk and do it properly.
+    // I'll update the chunks.
+
 
     const handleSave = async () => {
         setIsProcessing(true);
@@ -301,6 +377,62 @@ export default function Upload() {
                 </div>
             )}
 
+            <Dialog open={showPasswordDialog} onOpenChange={(open) => {
+                if (!open) {
+                    setShowPasswordDialog(false);
+                    setPendingFile(null);
+                    setPdfPassword("");
+                    setErrorMessage(null);
+                }
+            }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Password Required</DialogTitle>
+                        <DialogDescription>
+                            The uploaded PDF is password protected. Please enter the password to unlock it.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="pdf-password">Password</Label>
+                            <Input
+                                id="pdf-password"
+                                type="password"
+                                value={pdfPassword}
+                                onChange={(e) => setPdfPassword(e.target.value)}
+                                placeholder="Enter PDF password"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handlePasswordSubmit();
+                                    }
+                                }}
+                            />
+                        </div>
+                        {errorMessage && (
+                            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-2 rounded">
+                                <AlertCircle className="w-4 h-4" />
+                                <span>{errorMessage}</span>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter className="sm:justify-end">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setShowPasswordDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handlePasswordSubmit}
+                            disabled={!pdfPassword || isProcessing}
+                        >
+                            {isProcessing ? "Unlocking..." : "Unlock & Import"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }
