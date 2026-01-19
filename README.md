@@ -1,12 +1,13 @@
 # OwnFinance Tracker
 
 OwnFinance Tracker is a personal finance management application designed to help you track your expenses and manage your budget effectively.
-<video width="600" controls>
-  <source src="https://drive.google.com/uc?export=download&id=1wJDV3d3PS71W5krv1uEniBZEGRbHADpC" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
 
+https://github.com/user-attachments/assets/3bc15965-77d9-4961-9c74-2ceacb5b1221
 ## Phase 1 Pointers
+
+
+
+
 
 The following features are planned for Phase 1:
 
