@@ -73,8 +73,8 @@ export const parseCSV = (file: File): Promise<ParsedTransaction[]> => {
 };
 
 
-export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: string): Promise<ParsedTransaction[]> => {
-    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: string, password?: string): Promise<ParsedTransaction[]> => {
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer, password }).promise;
     let fullText = '';
     console.log(`DEBUG: PDF loaded. Num pages: ${pdf.numPages}`);
 
@@ -139,7 +139,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
     return extractor.extract(fullText);
 };
 
-export const parsePDF = async (file: File, extractorKey?: string): Promise<ParsedTransaction[]> => {
+export const parsePDF = async (file: File, extractorKey?: string, password?: string): Promise<ParsedTransaction[]> => {
     const arrayBuffer = await file.arrayBuffer();
-    return parsePDFBuffer(arrayBuffer, extractorKey);
+    return parsePDFBuffer(arrayBuffer, extractorKey, password);
 };
