@@ -135,7 +135,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
     }
 
     console.log(`Using extractor: ${extractor.name}`);
-    console.log('DEBUG: Extracted Text:\n', fullText);
+    // console.log('DEBUG: Extracted Text:\n', fullText);
     return extractor.extract(fullText);
 };
 
