@@ -11,6 +11,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { exec } from "@/db/sqlite"
 import { useNavigate } from "react-router-dom"
+import { formatTransactionDate } from "@/utils/dateUtils"
 
 interface Transaction {
     id: string
@@ -361,7 +362,7 @@ export default function Transactions() {
                                                 </tr>
                                                 {group.map(tx => (
                                                     <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{formatTransactionDate(tx.date)}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             {tx.source ? (
                                                                 <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
@@ -424,7 +425,7 @@ export default function Transactions() {
                                         const tx = group[0];
                                         return (
                                             <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{tx.date}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{formatTransactionDate(tx.date)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {tx.source ? (
                                                         <Badge variant="outline" className="text-gray-600 text-xs font-normal border-gray-200">
@@ -480,7 +481,7 @@ export default function Transactions() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">
                                                         <div className="flex items-center gap-2">
                                                             {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-                                                            {firstTx.date}
+                                                            {formatTransactionDate(firstTx.date)}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -513,7 +514,7 @@ export default function Transactions() {
                                                 {isExpanded && group.map((tx, idx) => (
                                                     <tr key={tx.id} className="bg-white border-l-4 border-blue-100 animate-in fade-in slide-in-from-top-1 duration-200">
                                                         <td className="px-6 py-3 pl-10 whitespace-nowrap text-gray-500 text-xs font-mono">
-                                                            ↳ {tx.date}
+                                                            ↳ {formatTransactionDate(tx.date)}
                                                         </td>
                                                         <td className="px-6 py-3 whitespace-nowrap">
                                                             {tx.source ? (
