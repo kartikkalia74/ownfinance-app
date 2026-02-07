@@ -109,6 +109,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
         });
 
         fullText += pageText + '\n';
+        console.log(fullText)
     }
 
     // Available extractors
