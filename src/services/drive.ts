@@ -107,5 +107,26 @@ export const DriveService = {
         }
 
         return await response.json();
+    },
+
+    /**
+     * Delete a file from Google Drive.
+     */
+    async deleteFile(accessToken: string, fileId: string): Promise<void> {
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (response.status === 401) {
+            throw new Error('UNAUTHENTICATED');
+        }
+
+        if (!response.ok && response.status !== 404) {
+            throw new Error(`Drive Delete Failed: ${response.statusText}`);
+        }
     }
 };

@@ -223,3 +223,28 @@ export const importDB = async (data: Uint8Array): Promise<void> => {
     });
     console.log('Database re-opened.');
 };
+
+export const closeAndClearDB = async (): Promise<void> => {
+    if (!promiser) return;
+
+    console.log('Clearing Database...');
+
+    try {
+        await promiser('close');
+        console.log('Database closed for deletion.');
+    } catch (e) {
+        console.warn('Failed to close DB:', e);
+    }
+
+    const root = await navigator.storage.getDirectory();
+    try {
+        await root.removeEntry('finance_db.sqlite3');
+        console.log('Database file deleted.');
+    } catch (e) {
+        console.warn('Failed to delete DB file (maybe already gone):', e);
+    }
+
+    // Reset promiser so it can be re-initialized if needed (though app reload is likely)
+    promiser = null;
+    promiserPromise = null;
+};

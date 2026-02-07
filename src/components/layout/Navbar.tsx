@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
-import { Settings, User, LogOut } from "lucide-react"
+import { User, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/store/auth"
 import {
@@ -8,6 +8,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+import SettingsDialog from "../settings/SettingsDialog"
 
 const navItems = [
     { href: "/", label: "Dashboard" },
@@ -50,9 +51,7 @@ export default function Navbar() {
 
                 {/* Right Actions */}
                 <div className="flex items-center gap-4">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
-                        <Settings className="w-5 h-5" />
-                    </button>
+                    <SettingsDialog />
                     <Popover>
                         <PopoverTrigger asChild>
                             <button className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center border border-white shadow-sm overflow-hidden hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2">
