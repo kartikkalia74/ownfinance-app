@@ -1,10 +1,10 @@
-import {PDFParse} from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 import fs from 'fs';
 
 
 async function parsePdf(pdfPath) {
     const data = fs.readFileSync(pdfPath);
-    const parser = new PDFParse( {data})
+    const parser = new PDFParse({ data })
     const pdf = await parser.getText()
     fs.writeFileSync('pdf.json', JSON.stringify(pdf, null, 2))
     return pdf;
@@ -12,5 +12,3 @@ async function parsePdf(pdfPath) {
 
 export default parsePdf;
 export { parsePdf };
-
-parsePdf('../../pdfreader/readerfiles/Statement_2025MTH1_252584401.pdf');
