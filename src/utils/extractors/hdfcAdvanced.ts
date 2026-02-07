@@ -23,8 +23,9 @@ export const HDFCAdvancedExtractor: StatementExtractor = {
             let dateStr = tx.date;
             const parts = dateStr.split('/');
             if (parts.length === 3) {
-                // DD/MM/YY -> 20YY-MM-DD
-                dateStr = `20${parts[2]}-${parts[1]}-${parts[0]}`;
+                // DD/MM/YY or DD/MM/YYYY -> YYYY-MM-DD
+                const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+                dateStr = `${year}-${parts[1]}-${parts[0]}`;
             }
 
             return {

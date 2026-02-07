@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 
 // @ts-ignore
 import { extractTransactionsAdvanced } from '../../statementparser/hdfc-statement-parser/rejex.js';
+import { HDFCAdvancedExtractor } from '../hdfcAdvanced';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +13,17 @@ const __dirname = path.dirname(__filename);
 const TEST_DATA_DIR = path.resolve(__dirname, '../../../../testdata/readerfiles/hdfc');
 
 describe('HDFC Structured Parsing Tests', () => {
+    it('should correctly parse 4-digit years without prepending 20 again', () => {
+        // Mock text simulating a transaction line with a 4-digit year
+        const text = `03/03/2025 Test Narration 100.00 0.00 500.00`;
+
+        const transactions = HDFCAdvancedExtractor.extract(text);
+
+        expect(transactions).toBeDefined();
+        expect(transactions.length).toBeGreaterThan(0);
+        // This expectation will fail if the bug exists (expects 2025-03-03, but gets 202025-03-03)
+        expect(transactions[0].date).toBe('2025-03-03');
+    });
     // Check if directory exists
     if (!fs.existsSync(TEST_DATA_DIR)) {
         console.warn(`HDFC test data directory not found at ${TEST_DATA_DIR}`);
