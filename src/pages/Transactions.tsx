@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import { exec } from "@/db/sqlite"
 import { useNavigate } from "react-router-dom"
 import { formatTransactionDate } from "@/utils/dateUtils"
+import { Checkbox } from "@/components/ui/checkbox"
+import { BulkCategoryUpdateDialog } from "@/components/transactions/BulkCategoryUpdateDialog"
 
 interface Transaction {
     id: string
@@ -38,6 +40,8 @@ export default function Transactions() {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
     const [groupBy, setGroupBy] = useState<'default' | 'month'>('default')
     const [isFiltersVisible, setIsFiltersVisible] = useState(true)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false)
     const navigate = useNavigate();
 
     // Grouping Logic
@@ -70,6 +74,33 @@ export default function Transactions() {
             newExpanded.add(key);
         }
         setExpandedGroups(newExpanded);
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds(new Set(transactions.map(t => t.id)));
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    const handleSelectTransaction = (id: string, checked: boolean) => {
+        const newSelected = new Set(selectedIds);
+        if (checked) {
+            newSelected.add(id);
+        } else {
+            newSelected.delete(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleSelectGroup = (groupTransactions: Transaction[], checked: boolean) => {
+        const newSelected = new Set(selectedIds);
+        groupTransactions.forEach(tx => {
+            if (checked) newSelected.add(tx.id);
+            else newSelected.delete(tx.id);
+        });
+        setSelectedIds(newSelected);
     };
 
     const fetchCategories = async () => {
@@ -166,6 +197,11 @@ export default function Transactions() {
         fetchTransactions();
     }, [date, selectedCategory, amountRange]);
 
+    // Clear selection when filters change
+    useEffect(() => {
+        setSelectedIds(new Set());
+    }, [date, selectedCategory, amountRange]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -228,6 +264,34 @@ export default function Transactions() {
                     </Select>
                 </div>
             </div>
+
+            {/* Bulk Actions Bar */}
+            {selectedIds.size > 0 && (
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2 text-blue-800 font-medium">
+                        <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">{selectedIds.size}</span>
+                        <span>Selected</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setIsBulkUpdateDialogOpen(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                        >
+                            <Settings2 className="w-4 h-4" /> Change Category
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                            onClick={() => setSelectedIds(new Set())}
+                        >
+                            Cancel Selection
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Filters Section */}
             {isFiltersVisible && (
@@ -332,22 +396,29 @@ export default function Transactions() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-gray-100">
+                                <th className="px-6 py-4 w-[50px]">
+                                    <Checkbox
+                                        checked={transactions.length > 0 && selectedIds.size === transactions.length}
+                                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                    />
+                                </th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Source</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payee</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
                                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"></th>
+                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 bg-white text-sm">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
+                                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
                                 </tr>
                             ) : transactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
+                                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">No transactions found.</td>
                                 </tr>
                             ) : (
                                 Object.entries(groupedTransactions).map(([key, group]) => {
@@ -364,11 +435,17 @@ export default function Transactions() {
                                         return (
                                             <>
                                                 <tr key={key} className="bg-gray-50 border-y border-gray-100">
-                                                    <td colSpan={7} className="px-6 py-3">
+                                                    <td colSpan={8} className="px-6 py-3">
                                                         <div className="flex items-center justify-between">
-                                                            <span className="text-sm font-semibold text-gray-800">
-                                                                {key} ({group.length})
-                                                            </span>
+                                                            <div className="flex items-center gap-3">
+                                                                <Checkbox
+                                                                    checked={group.every(t => selectedIds.has(t.id))}
+                                                                    onCheckedChange={(checked) => handleSelectGroup(group, !!checked)}
+                                                                />
+                                                                <span className="text-sm font-semibold text-gray-800">
+                                                                    {key} ({group.length})
+                                                                </span>
+                                                            </div>
                                                             <div className="flex gap-4 text-sm font-medium">
                                                                 {totalIncome > 0 && (
                                                                     <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
@@ -386,6 +463,12 @@ export default function Transactions() {
                                                 </tr>
                                                 {group.map(tx => (
                                                     <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-6 py-4 w-[50px]">
+                                                            <Checkbox
+                                                                checked={selectedIds.has(tx.id)}
+                                                                onCheckedChange={(checked) => handleSelectTransaction(tx.id, !!checked)}
+                                                            />
+                                                        </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{formatTransactionDate(tx.date)}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             {tx.source ? (
@@ -396,19 +479,24 @@ export default function Transactions() {
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className={cn(
-                                                                    "font-normal",
-                                                                    tx.category === "Groceries" && "bg-blue-50 text-blue-700",
-                                                                    tx.category === "Transport" && "bg-orange-50 text-orange-700",
-                                                                    tx.category === "Income" && "bg-green-50 text-green-700",
-                                                                    tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
-                                                                    tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
-                                                                )}
-                                                            >
-                                                                {tx.category}
-                                                            </Badge>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {tx.category.split(',').map((cat, idx) => (
+                                                                    <Badge
+                                                                        key={idx}
+                                                                        variant="secondary"
+                                                                        className={cn(
+                                                                            "font-normal",
+                                                                            cat === "Groceries" && "bg-blue-50 text-blue-700",
+                                                                            cat === "Transport" && "bg-orange-50 text-orange-700",
+                                                                            cat === "Income" && "bg-green-50 text-green-700",
+                                                                            cat === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                                            cat === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                                        )}
+                                                                    >
+                                                                        {cat}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
                                                         </td>
                                                         <td className={cn(
                                                             "px-6 py-4 whitespace-nowrap text-right font-medium",
@@ -438,6 +526,7 @@ export default function Transactions() {
                                                             </div>
                                                         </td>
                                                     </tr>
+
                                                 ))}
                                             </>
                                         )
@@ -449,6 +538,12 @@ export default function Transactions() {
                                         const tx = group[0];
                                         return (
                                             <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="px-6 py-4 w-[50px]">
+                                                    <Checkbox
+                                                        checked={selectedIds.has(tx.id)}
+                                                        onCheckedChange={(checked) => handleSelectTransaction(tx.id, !!checked)}
+                                                    />
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">{formatTransactionDate(tx.date)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {tx.source ? (
@@ -459,19 +554,24 @@ export default function Transactions() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{tx.payee}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={cn(
-                                                            "font-normal",
-                                                            tx.category === "Groceries" && "bg-blue-50 text-blue-700",
-                                                            tx.category === "Transport" && "bg-orange-50 text-orange-700",
-                                                            tx.category === "Income" && "bg-green-50 text-green-700",
-                                                            tx.category === "Utilities" && "bg-yellow-50 text-yellow-700",
-                                                            tx.category === "Food & Drink" && "bg-purple-50 text-purple-700",
-                                                        )}
-                                                    >
-                                                        {tx.category}
-                                                    </Badge>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {tx.category.split(',').map((cat, idx) => (
+                                                            <Badge
+                                                                key={idx}
+                                                                variant="secondary"
+                                                                className={cn(
+                                                                    "font-normal",
+                                                                    cat === "Groceries" && "bg-blue-50 text-blue-700",
+                                                                    cat === "Transport" && "bg-orange-50 text-orange-700",
+                                                                    cat === "Income" && "bg-green-50 text-green-700",
+                                                                    cat === "Utilities" && "bg-yellow-50 text-yellow-700",
+                                                                    cat === "Food & Drink" && "bg-purple-50 text-purple-700",
+                                                                )}
+                                                            >
+                                                                {cat}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
                                                 </td>
                                                 <td className={cn(
                                                     "px-6 py-4 whitespace-nowrap text-right font-medium",
@@ -501,7 +601,18 @@ export default function Transactions() {
                                         const isExpanded = expandedGroups.has(key);
                                         return (
                                             <>
-                                                <tr key={key} className="bg-gray-50/80 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => toggleGroup(key)}>
+                                                <tr key={key} className="bg-gray-50/80 hover:bg-gray-100 transition-colors cursor-pointer" onClick={(e) => {
+                                                    // Prevent generating click when clicking checkbox
+                                                    if ((e.target as HTMLElement).closest('[role="checkbox"]')) return;
+                                                    toggleGroup(key)
+                                                }}>
+                                                    <td className="px-6 py-4 w-[50px]">
+                                                        <Checkbox
+                                                            checked={group.every(t => selectedIds.has(t.id))}
+                                                            onCheckedChange={(checked) => handleSelectGroup(group, !!checked)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium font-mono">
                                                         <div className="flex items-center gap-2">
                                                             {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
@@ -537,7 +648,13 @@ export default function Transactions() {
                                                 {/* Expanded Rows */}
                                                 {isExpanded && group.map((tx, idx) => (
                                                     <tr key={tx.id} className="bg-white border-l-4 border-blue-100 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                        <td className="px-6 py-3 pl-10 whitespace-nowrap text-gray-500 text-xs font-mono">
+                                                        <td className="px-6 py-3 pl-4">
+                                                            <Checkbox
+                                                                checked={selectedIds.has(tx.id)}
+                                                                onCheckedChange={(checked) => handleSelectTransaction(tx.id, !!checked)}
+                                                            />
+                                                        </td>
+                                                        <td className="px-6 py-3 whitespace-nowrap text-gray-500 text-xs font-mono">
                                                             ↳ {formatTransactionDate(tx.date)}
                                                         </td>
                                                         <td className="px-6 py-3 whitespace-nowrap">
@@ -549,9 +666,13 @@ export default function Transactions() {
                                                         </td>
                                                         <td className="px-6 py-3 whitespace-nowrap text-gray-700 text-sm">{tx.payee}</td>
                                                         <td className="px-6 py-3 whitespace-nowrap">
-                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                                                                {tx.category}
-                                                            </span>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {tx.category.split(',').map((cat, idx) => (
+                                                                    <span key={idx} className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                                                        {cat}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-3 whitespace-nowrap text-right text-sm text-gray-500">
                                                             {/* Amount repeated for clarity, or can be blank */}
@@ -587,6 +708,15 @@ export default function Transactions() {
                     fetchTransactions();
                     fetchMaxAmount();
                     fetchCategories();
+                }}
+            />
+            <BulkCategoryUpdateDialog
+                open={isBulkUpdateDialogOpen}
+                onOpenChange={setIsBulkUpdateDialogOpen}
+                selectedIds={selectedIds}
+                onSave={() => {
+                    fetchTransactions();
+                    setSelectedIds(new Set()); // Clear selection after update
                 }}
             />
         </div>
