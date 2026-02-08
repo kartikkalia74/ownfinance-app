@@ -353,11 +353,35 @@ export default function Transactions() {
                                 Object.entries(groupedTransactions).map(([key, group]) => {
                                     if (groupBy === 'month') {
                                         // Monthly Group Rendering
+                                        const totalIncome = group
+                                            .filter(t => t.type === 'income')
+                                            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+                                        const totalExpense = group
+                                            .filter(t => t.type === 'expense')
+                                            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
                                         return (
                                             <>
                                                 <tr key={key} className="bg-gray-50 border-y border-gray-100">
-                                                    <td colSpan={7} className="px-6 py-3 text-sm font-semibold text-gray-800">
-                                                        {key} ({group.length})
+                                                    <td colSpan={7} className="px-6 py-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-semibold text-gray-800">
+                                                                {key} ({group.length})
+                                                            </span>
+                                                            <div className="flex gap-4 text-sm font-medium">
+                                                                {totalIncome > 0 && (
+                                                                    <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                                                                        Income: +₹{totalIncome.toFixed(2)}
+                                                                    </span>
+                                                                )}
+                                                                {totalExpense > 0 && (
+                                                                    <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                                                                        Expense: -₹{totalExpense.toFixed(2)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 {group.map(tx => (
