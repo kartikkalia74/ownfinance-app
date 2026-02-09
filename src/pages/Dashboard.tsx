@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react"
-import { ArrowUpRight, ArrowDownRight, Settings, Loader2 } from "lucide-react"
+import { ArrowUpRight, ArrowDownRight, Settings, Loader2, ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { MonthPicker } from "@/components/ui/month-picker"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { exec } from "@/db/sqlite"
 import { startOfMonth, endOfMonth, subMonths, format, startOfDay, endOfDay } from "date-fns"
@@ -49,27 +52,36 @@ export default function Dashboard() {
     const [lendingStats, setLendingStats] = useState({ totalBorrowed: 0, totalLent: 0 });
     const [loading, setLoading] = useState(true);
     const [displayMonth, setDisplayMonth] = useState(new Date());
+    const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+
+    // Initialize View (Smart Date Selection)
+    useEffect(() => {
+        const initializeView = async () => {
+            try {
+                const now = new Date();
+                // Check if we have data for the current month
+                const currentMonthStartCheck = format(startOfMonth(now), 'yyyy-MM-dd');
+                const currentMonthEndCheck = format(endOfMonth(now), 'yyyy-MM-dd');
+                const hasDataRes = await exec(`SELECT COUNT(*) FROM transactions WHERE date BETWEEN '${currentMonthStartCheck}' AND '${currentMonthEndCheck}'`);
+
+                if (!hasDataRes[0] || hasDataRes[0][0] === 0) {
+                    // No data for current month, find the latest month with data
+                    const latestDateRes = await exec(`SELECT date FROM transactions ORDER BY date DESC LIMIT 1`);
+                    if (latestDateRes[0] && latestDateRes[0][0]) {
+                        setDisplayMonth(new Date(latestDateRes[0][0]));
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to initialize dashboard date", e);
+            }
+        };
+        initializeView();
+    }, []);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const now = new Date();
-            let targetDate = now;
-
-            // 0. Check if we have data for the current month
-            const currentMonthStartCheck = format(startOfMonth(now), 'yyyy-MM-dd');
-            const currentMonthEndCheck = format(endOfMonth(now), 'yyyy-MM-dd');
-            const hasDataRes = await exec(`SELECT COUNT(*) FROM transactions WHERE date BETWEEN '${currentMonthStartCheck}' AND '${currentMonthEndCheck}'`);
-
-            if (!hasDataRes[0] || hasDataRes[0][0] === 0) {
-                // No data for current month, find the latest month with data
-                const latestDateRes = await exec(`SELECT date FROM transactions ORDER BY date DESC LIMIT 1`);
-                if (latestDateRes[0] && latestDateRes[0][0]) {
-                    targetDate = new Date(latestDateRes[0][0]);
-                }
-            }
-
-            setDisplayMonth(targetDate);
+            const targetDate = displayMonth; // Use the state directly
 
             const currentMonthStart = format(startOfMonth(targetDate), 'yyyy-MM-dd');
             const currentMonthEnd = format(endOfMonth(targetDate), 'yyyy-MM-dd');
@@ -170,7 +182,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [displayMonth]);
 
     if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
@@ -180,10 +192,22 @@ export default function Dashboard() {
             <header className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
                 <div className="flex bg-white rounded-lg p-1 border border-gray-100 shadow-sm">
-                    <button className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-md shadow-sm">
-                        {format(displayMonth, 'MMMM yyyy')}
-                    </button>
-                    {/* <button className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900">Last 30 Days</button> */}
+                    <Popover open={isMonthPickerOpen} onOpenChange={setIsMonthPickerOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 hover:text-white rounded-md shadow-sm h-auto">
+                                {format(displayMonth, 'MMMM yyyy')} <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <MonthPicker
+                                currentMonth={displayMonth}
+                                onMonthChange={(date) => {
+                                    setDisplayMonth(date)
+                                    setIsMonthPickerOpen(false)
+                                }}
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </header>
 

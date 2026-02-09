@@ -14,9 +14,10 @@ export function extractTransactions(text) {
     return [];
   }
 
+
   // Regex to extract all data between 'Date Transaction Details Type Amount' and 'Page X of Y\n'
   // Also handle cases where there's no page footer (single page or end of document)
-  const regex = /Date Transaction Details Type Amount([\s\S]*?)(?:Page \d+ of \d+\n|This is (?:a system|an automatically) generated statement)/g;
+  const regex = /Date\s+Transaction\s+Details\s+Type\s+Amount([\s\S]*?)(?:Page \d+ of \d+\n|This is (?:a system|an automatically) generated statement)/g;
 
   // Extract all transaction data sections (for multiple pages)
   const allTransactions = [];
@@ -27,9 +28,10 @@ export function extractTransactions(text) {
 
   // If no matches found with page footer, try to extract everything after the header
   if (allTransactions.length === 0) {
-    const headerIndex = text.indexOf('Date Transaction Details Type Amount');
-    if (headerIndex !== -1) {
-      const remainingText = text.substring(headerIndex + 'Date Transaction Details Type Amount'.length);
+    const headerMatch = text.match(/Date\s+Transaction\s+Details\s+Type\s+Amount/);
+    if (headerMatch) {
+      const headerIndex = headerMatch.index;
+      const remainingText = text.substring(headerIndex + headerMatch[0].length);
       // Remove footer text if present
       const cleanedText = remainingText.split(/This is (?:a system|an automatically) generated statement/)[0];
       if (cleanedText.trim()) {
@@ -40,20 +42,20 @@ export function extractTransactions(text) {
 
   // Regex to match individual transactions - from date to "Paid by" or "Credited to" line
   // Each transaction starts with a date (e.g., "Oct 11, 2025") and ends with "Paid by" or "Credited to" line
-  const transactionRegex = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec) \d+, \d{4}[\s\S]*?)(Paid by [\dX]+\n|Credited to [\dX]+\n)/g;
+  const transactionRegex = /(\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec) \d+, \d{4}[\s\S]*?)(Paid by\s*(?:[\dX]+)?\n|Credited to\s*(?:[\dX]+)?\n)/g;
 
   // Extract individual transactions from each page
   const individualTransactions = [];
   allTransactions.forEach((pageData, pageIndex) => {
     // Reset regex lastIndex for each page
     transactionRegex.lastIndex = 0;
-    
+
     let match;
     let txNumber = 1;
     while ((match = transactionRegex.exec(pageData)) !== null) {
       const transactionDetails = match[1].trim();
       const paymentLine = match[2].trim();
-      
+
       individualTransactions.push({
         page: pageIndex + 1,
         transactionNumber: txNumber++,
@@ -69,67 +71,60 @@ export function extractTransactions(text) {
   individualTransactions.forEach((tx) => {
     const transaction = {};
     const lines = tx.fullTransaction.split('\n').filter(line => line.trim());
-    
-    lines.forEach((line, i) => {
-      if (i === 0) {
-        // Date line: "Oct 11, 2025"
-        transaction.date = line.trim();
-      } else if (i === 1) {
-        // Time line: "05:49 pm"
-        transaction.time = line.trim();
-      } else if (i === 2) {
-        // Type and amount line: "DEBIT ₹1,400\tPaid to DEEP GARMENTS"
-        const parts = line.split('\t');
-        if (parts.length > 0) {
-          const typeAmountMatch = parts[0].match(/(DEBIT|CREDIT)\s+(₹[\d,]+\.?\d*)/);
-          if (typeAmountMatch) {
-            transaction.type = typeAmountMatch[1];
-            transaction.amount = typeAmountMatch[2];
-          }
-          
-          // Extract merchant/recipient name
-          if (parts.length > 1) {
-            const merchantMatch = parts[1].match(/(?:Paid to|Received from)\s+(.+)/);
-            if (merchantMatch) {
-              transaction.merchant = merchantMatch[1].trim();
-            }
-          } else {
-            // Sometimes merchant name is in the same part
-            const merchantMatch = parts[0].match(/(?:Paid to|Received from)\s+(.+?)(?:\s+DEBIT|\s+CREDIT|$)/);
-            if (merchantMatch) {
-              transaction.merchant = merchantMatch[1].trim();
-            }
-          }
-        }
-      } else if (line.includes('Transaction ID')) {
-        // Transaction ID line: "Transaction ID T2510111749037008849949"
-        const txIdMatch = line.match(/Transaction ID\s+(\S+)/);
-        if (txIdMatch) {
-          transaction.transactionId = txIdMatch[1];
-        }
-      } else if (line.includes('UTR No.')) {
-        // UTR line: "UTR No. 414865555749"
-        const utrMatch = line.match(/UTR No\.\s+(\S+)/);
-        if (utrMatch) {
-          transaction.utrNo = utrMatch[1];
-        }
-      } else if (line.includes('Paid by') || line.includes('Credited to')) {
-        // Payment method line: "Paid by 652902XXXXXXXX10" or "Credited to XXXXXX4230"
-        const paymentMatch = line.match(/(?:Paid by|Credited to)\s+(.+)/);
-        if (paymentMatch) {
-          transaction.paymentMethod = paymentMatch[1].trim();
-        }
-      } else if (line.includes('Reference ID')) {
-        // Reference ID for mobile recharges: "Airtel Prepaid Reference ID 948516891"
-        const refMatch = line.match(/Reference ID\s+(\S+)/);
-        if (refMatch) {
-          transaction.referenceId = refMatch[1];
-        }
+
+    // Line 0 contains Date, Merchant, Type, Amount
+    // Example: "Oct 11, 2025 Paid to DEEP GARMENTS  DEBIT   ₹ 1,400"
+    if (lines.length > 0) {
+      const firstLine = lines[0];
+
+      // Extract Date
+      const dateMatch = firstLine.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec) \d+, \d{4})/);
+      if (dateMatch) {
+        transaction.date = dateMatch[1];
       }
-    });
+
+      // Extract Amount and Type
+      const amountTypeMatch = firstLine.match(/(DEBIT|CREDIT)\s+(₹\s*[\d,]+\.?\d*)/);
+      if (amountTypeMatch) {
+        transaction.type = amountTypeMatch[1];
+        transaction.amount = amountTypeMatch[2].replace(/[₹,\s]/g, '');
+      }
+
+      // Extract Merchant/Description
+      // "Paid to ..." or "Received from ..."
+      const merchantMatch = firstLine.match(/(?:Paid to|Received from)\s+(.+?)(?:\s+DEBIT|\s+CREDIT|$)/);
+      if (merchantMatch) {
+        transaction.merchant = merchantMatch[1].trim();
+      }
+    }
+
+    // Line 1 usually contains Time and ID
+    // Example: "05:49 pm  Transaction ID T251011..."
+    if (lines.length > 1) {
+      const secondLine = lines[1];
+      const timeMatch = secondLine.match(/(\d{2}:\d{2}\s+(?:am|pm))/i);
+      if (timeMatch) {
+        transaction.time = timeMatch[1];
+      }
+
+      const idMatch = secondLine.match(/Transaction ID\s+(\w+)/);
+      if (idMatch) {
+        transaction.transactionId = idMatch[1];
+      }
+    }
+
+    // Look for UTR in remaining lines
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i];
+      const utrMatch = line.match(/UTR No\.\s+(\d+)/);
+      if (utrMatch) {
+        transaction.utrNo = utrMatch[1]; // Prefer strict UTR if available
+        break;
+      }
+    }
 
     // Only add transaction if it has at least date and type
-    if (transaction.date && transaction.type) {
+    if (transaction.date && transaction.amount && (transaction.merchant || transaction.type)) {
       output.push(transaction);
     }
   });
@@ -160,13 +155,13 @@ export async function parseFromBuffer(buffer) {
   try {
     const pdfData = await pdfParse(buffer);
     const text = pdfData.text;
-    
+
     // Extract statement metadata
     const metadata = extractMetadata(text);
-    
+
     // Extract transactions
     const transactions = extractTransactions(text);
-    
+
     return {
       metadata,
       transactions,
@@ -185,20 +180,20 @@ export async function parseFromBuffer(buffer) {
  */
 function extractMetadata(text) {
   const metadata = {};
-  
+
   // Extract phone number: "Transaction Statement for 9915344792"
   const phoneMatch = text.match(/Transaction Statement for\s+(\d+)/);
   if (phoneMatch) {
     metadata.phoneNumber = phoneMatch[1];
   }
-  
+
   // Extract date range: "15 Jul, 2025 - 13 Oct, 2025"
   const dateRangeMatch = text.match(/(\d{1,2}\s+\w+,\s+\d{4})\s*-\s*(\d{1,2}\s+\w+,\s+\d{4})/);
   if (dateRangeMatch) {
     metadata.startDate = dateRangeMatch[1];
     metadata.endDate = dateRangeMatch[2];
   }
-  
+
   return metadata;
 }
 
@@ -210,4 +205,3 @@ export default {
   parseFromBuffer,
   extractTransactions
 };
-

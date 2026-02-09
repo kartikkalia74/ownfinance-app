@@ -6,6 +6,21 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { exec } from "@/db/sqlite"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface TransactionDialogProps {
     open: boolean
@@ -24,16 +39,15 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
     const [payee, setPayee] = useState("")
     const [amount, setAmount] = useState("")
     const [type, setType] = useState("expense") // 'expense' | 'income'
-    const [categoryId, setCategoryId] = useState("")
+    const [categoryId, setCategoryId] = useState<string>("")
     const [categories, setCategories] = useState<Category[]>([])
     const [isLoading, setIsLoading] = useState(false)
+    const [openCombobox, setOpenCombobox] = useState(false)
 
     // Fetch categories when dialog opens or type changes
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                // Fetch categories based on selected type (income/expense)
-                // Or just fetch all and filter in UI? SQL filtering is better.
                 const res = await exec(`SELECT id, name, type FROM categories WHERE type = '${type}'`);
                 const cats = res.map((row: any) => ({
                     id: row[0],
@@ -42,11 +56,11 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
                 }));
                 setCategories(cats);
 
-                // Reset selected category if it doesn't match the new type (unless it's empty)
-                if (categoryId) {
-                    const currentCat = cats.find((c: Category) => c.id === categoryId);
-                    if (!currentCat) setCategoryId("");
-                }
+                // Reset category if not found in new type
+                setCategoryId(prev => {
+                    if (cats.find((c: any) => c.id === prev)) return prev;
+                    return "";
+                });
             } catch (e) {
                 console.error("Failed to fetch categories", e);
             }
@@ -64,28 +78,16 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
         try {
             const id = crypto.randomUUID();
             const finalAmount = parseFloat(amount);
-
-            // Ensure expense amounts are negative if they aren't already input as such (optional, or just handle at display level).
-            // Let's stick to: Income = Positive, Expense = Negative for DB storage to make SUM() easy.
             const dbAmount = type === 'expense' ? -Math.abs(finalAmount) : Math.abs(finalAmount);
 
-            // Find category name for denormalization if needed, or just store ID depending on schema.
-            // Schema says `category TEXT NOT NULL`. It seems we are storing the Category NAME or ID?
-            // Looking at sample data and previous code, we store the *Name* ("Groceries").
-            // But the `transactions` table schema doesn't strict enforce FK. 
-            // Ideally we should store ID or make sure Name is unique.
-            // Let's check `src/db/sqlite.ts` schema again.
-            // Schema: category TEXT NOT NULL.
-            // Sample data: 'Groceries', 'Transport'.
-            // Categories table: id, name.
-            // I will find the name from the selected ID.
-            const selectedCat = categories.find(c => c.id === categoryId);
-            const categoryName = selectedCat ? selectedCat.name : "Uncategorized";
+            // Get category name
+            const selectedCategory = categories.find(c => c.id === categoryId);
+            const categoryString = selectedCategory ? selectedCategory.name : "Uncategorized";
 
             await exec(`
             INSERT INTO transactions (id, date, payee, category, amount, type, status, source)
             VALUES (?, ?, ?, ?, ?, ?, 'completed', ?)
-        `, [id, date, payee, categoryName, dbAmount, type, 'manual']);
+        `, [id, date, payee, categoryString, dbAmount, type, 'manual']);
 
             onSave();
             onOpenChange(false);
@@ -100,6 +102,8 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
             setIsLoading(false)
         }
     }
+
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

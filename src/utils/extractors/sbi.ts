@@ -5,6 +5,7 @@ export const SBIExtractor: StatementExtractor = {
     name: 'SBI',
     identify: (text: string) => text.includes('STATE BANK OF INDIA') || text.includes('State Bank of India') || text.includes('SBI'),
     extract: (text: string) => {
+        console.log(text)
         const lines = text.split('\n');
         const transactions: ParsedTransaction[] = [];
 
