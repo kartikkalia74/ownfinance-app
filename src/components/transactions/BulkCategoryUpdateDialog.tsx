@@ -6,14 +6,8 @@ import { Label } from "@/components/ui/label"
 import { exec } from "@/db/sqlite"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Popover,
     PopoverContent,
@@ -38,6 +32,7 @@ export function BulkCategoryUpdateDialog({ open, onOpenChange, selectedIds, onSa
     const [categories, setCategories] = useState<Category[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [openCombobox, setOpenCombobox] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -103,6 +98,9 @@ export function BulkCategoryUpdateDialog({ open, onOpenChange, selectedIds, onSa
         });
     };
 
+    const filteredCategories = categories.filter(category =>
+        category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
 
 
     return (
@@ -142,42 +140,41 @@ export function BulkCategoryUpdateDialog({ open, onOpenChange, selectedIds, onSa
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder="Search category..." />
-                                    <CommandList>
-                                        <CommandEmpty>No category found.</CommandEmpty>
-                                        <CommandGroup>
-                                            {categories.map((category) => (
-                                                <CommandItem
+                            <PopoverContent className="w-[300px] p-0 z-[200] pointer-events-auto" align="start">
+                                <div className="p-0">
+                                    <div className="flex items-center border-b px-3">
+                                        <Input
+                                            className="border-0 shadow-none focus-visible:ring-0 px-0"
+                                            placeholder="Search category..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="max-h-[300px] overflow-y-auto p-1">
+                                        {filteredCategories.length === 0 ? (
+                                            <div className="py-6 text-center text-sm text-muted-foreground">
+                                                No category found.
+                                            </div>
+                                        ) : (
+                                            filteredCategories.map((category) => (
+                                                <div
                                                     key={category.id}
-                                                    value={category.name} // Use name for search filtering
-                                                    onSelect={(currentValue) => {
-                                                        // We match by name because value must be derived from label usually in dumb cmdk
-                                                        // But we can look it up.
-                                                        // Actually, cmdk usually lowercases `value`.
-                                                        // Better to iterate and find ID.
-                                                        const cat = categories.find((c) => c.name.toLowerCase() === currentValue.toLowerCase() || c.name === currentValue)
-                                                        if (cat) {
-                                                            toggleCategory(cat.id);
-                                                        }
-                                                        // Keep combobox open for multi-select
-                                                        // setOpenCombobox(false)
-                                                    }}
+                                                    className="flex cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                                                    onClick={() => toggleCategory(category.id)}
                                                 >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            selectedCategoryIds.has(category.id) ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {category.name}
-                                                    <span className="ml-auto text-xs text-gray-400">{category.type}</span>
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
+                                                    <div className={cn(
+                                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                        selectedCategoryIds.has(category.id) ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible"
+                                                    )}>
+                                                        <Check className={cn("h-4 w-4")} />
+                                                    </div>
+                                                    <span>{category.name}</span>
+                                                    <span className="ml-auto text-xs text-muted-foreground">{category.type}</span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                             </PopoverContent>
                         </Popover>
                     </div>
