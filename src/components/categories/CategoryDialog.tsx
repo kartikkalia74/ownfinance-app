@@ -23,7 +23,7 @@ interface Category {
     id: string
     name: string
     color: string
-    type: 'income' | 'expense'
+    type: 'income' | 'expense' | 'transfer'
 }
 
 interface CategoryDialogProps {
@@ -36,7 +36,7 @@ interface CategoryDialogProps {
 export function CategoryDialog({ open, onOpenChange, category, onSuccess }: CategoryDialogProps) {
     const [name, setName] = useState("")
     const [color, setColor] = useState("#3b82f6")
-    const [type, setType] = useState<'income' | 'expense'>("expense")
+    const [type, setType] = useState<'income' | 'expense' | 'transfer'>("expense")
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
@@ -108,16 +108,18 @@ export function CategoryDialog({ open, onOpenChange, category, onSuccess }: Cate
                                 Type
                             </Label>
                             <div className="col-span-3">
-                                <Select value={type} onValueChange={(v: 'income' | 'expense') => setType(v)}>
+                                <Select value={type} onValueChange={(v: 'income' | 'expense' | 'transfer') => setType(v)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="expense">Expense</SelectItem>
                                         <SelectItem value="income">Income</SelectItem>
+                                        <SelectItem value="transfer">Transfer</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="color" className="text-right">

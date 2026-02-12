@@ -38,7 +38,7 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [payee, setPayee] = useState("")
     const [amount, setAmount] = useState("")
-    const [type, setType] = useState("expense") // 'expense' | 'income'
+    const [type, setType] = useState("expense") // 'expense' | 'income' | 'transfer'
     const [categoryId, setCategoryId] = useState<string>("")
     const [categories, setCategories] = useState<Category[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -78,7 +78,11 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
         try {
             const id = crypto.randomUUID();
             const finalAmount = parseFloat(amount);
-            const dbAmount = type === 'expense' ? -Math.abs(finalAmount) : Math.abs(finalAmount);
+            // expense is negative, income is positive, transfer is negative (money out from this account view)
+            let dbAmount = Math.abs(finalAmount);
+            if (type === 'expense' || type === 'transfer') {
+                dbAmount = -dbAmount;
+            }
 
             // Get category name
             const selectedCategory = categories.find(c => c.id === categoryId);
@@ -132,6 +136,14 @@ export function TransactionDialog({ open, onOpenChange, onSave }: TransactionDia
                             onClick={() => setType('income')}
                         >
                             Income
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={type === 'transfer' ? 'default' : 'outline'}
+                            className={type === 'transfer' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                            onClick={() => setType('transfer')}
+                        >
+                            Transfer
                         </Button>
                     </div>
 

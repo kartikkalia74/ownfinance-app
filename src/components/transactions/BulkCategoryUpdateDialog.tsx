@@ -24,7 +24,7 @@ interface BulkCategoryUpdateDialogProps {
 interface Category {
     id: string
     name: string
-    type: string
+    type: string // 'income' | 'expense' | 'transfer'
 }
 
 export function BulkCategoryUpdateDialog({ open, onOpenChange, selectedIds, onSave }: BulkCategoryUpdateDialogProps) {
