@@ -11,11 +11,13 @@ import Categories from './pages/Categories'
 import Upload from './pages/Upload'
 import RequireAuth from './components/auth/RequireAuth'
 import { useDriveSync } from './hooks/useDriveSync'
+import { SyncConflictDialog } from './components/sync/SyncConflictDialog'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
+import Settings from './pages/Settings'
 
 function App() {
-  useDriveSync();
+  const { syncConflict, resolveConflict } = useDriveSync();
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {
@@ -51,9 +53,18 @@ function App() {
             <Route path="borrow-lend/:id" element={<LendingDetail />} />
             <Route path="categories" element={<Categories />} />
             <Route path="upload" element={<Upload />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Route>
       </Routes>
+
+      <SyncConflictDialog
+        isOpen={!!syncConflict}
+        onConfirm={() => resolveConflict(true)}
+        onCancel={() => resolveConflict(false)}
+        cloudDate={syncConflict?.cloudDate}
+        localDate={syncConflict?.localDate}
+      />
     </Router>
   )
 }

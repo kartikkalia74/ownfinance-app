@@ -16,6 +16,7 @@ const navItems = [
     { href: "/categories", label: "Categories" },
     { href: "/upload", label: "Import" },
     { href: "/borrow-lend", label: "Borrow / Lend" },
+    { href: "/settings", label: "Settings" },
 ]
 
 export default function Navbar() {
