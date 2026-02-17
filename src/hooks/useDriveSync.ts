@@ -198,6 +198,61 @@ export function useDriveSync() {
         }
     };
 
+    const exportDataToFile = async () => {
+        try {
+            const data = await exportDB();
+            const blob = new Blob([data as any], { type: 'application/x-sqlite3' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `finance_backup_${new Date().toISOString().split('T')[0]}.sqlite3`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            handleError(err);
+            alert("Failed to export database.");
+        }
+    };
+
+    const importDataFromFile = async (file: File) => {
+        try {
+            setIsSyncing(true);
+            const arrayBuffer = await file.arrayBuffer();
+            const data = new Uint8Array(arrayBuffer);
+
+            // 1. Import to local SQLite
+            await importDB(data);
+            console.log('Import: Local DB updated.');
+
+            // 2. Upload to Cloud immediately to ensure sync
+            if (token) {
+                console.log('Import: Uploading to Cloud...');
+                // We re-export to ensure we are sending exactly what is in DB
+                // (Though 'data' is valid, let's be safe and use uniform flow if needed, 
+                // but using 'data' directly is more efficient)
+                const blob = new Blob([data as any], { type: 'application/x-sqlite3' });
+                const result = await DriveService.uploadDatabase(token, blob, fileIdRef.current || undefined);
+                fileIdRef.current = result.id;
+                console.log('Import: Cloud Sync Complete.');
+
+                const now = new Date();
+                setLastSyncTime(now);
+                localStorage.setItem('finance_last_sync_time', now.toISOString());
+            }
+
+            alert("Database imported successfully. App will reload.");
+            window.location.reload();
+
+        } catch (err) {
+            handleError(err);
+            alert("Failed to import database.");
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     return {
         isSyncing,
         lastSyncTime,
@@ -205,6 +260,8 @@ export function useDriveSync() {
         resolveConflict,
         forceSync,
         deleteRemoteBackup,
-        resetLocalData
+        resetLocalData,
+        exportDataToFile,
+        importDataFromFile
     };
 }

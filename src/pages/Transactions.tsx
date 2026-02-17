@@ -263,12 +263,14 @@ export default function Transactions() {
         <div className="space-y-6 max-w-5xl mx-auto pb-20">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Transactions</h1>
-                    <p className="text-gray-500 mt-1">Track your income and expenses.</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">Transactions</h1>
+                        <p className="text-sm md:text-base text-gray-500 mt-1">Track your income and expenses.</p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm" onClick={() => setIsAddDialogOpen(true)}>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <Button className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-sm" onClick={() => setIsAddDialogOpen(true)}>
                         <Plus className="w-4 h-4" /> Add Transaction
                     </Button>
                 </div>
@@ -423,7 +425,7 @@ export default function Transactions() {
                                 </button>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto scrollbar-hide">
                                 {categories.map((cat, i) => (
                                     <button
                                         key={cat.label}
@@ -518,26 +520,26 @@ export default function Transactions() {
                                             <div
                                                 key={tx.id}
                                                 className={cn(
-                                                    "group flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors relative",
+                                                    "group flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-gray-50 transition-colors relative",
                                                     isSelected && "bg-blue-50/50"
                                                 )}
                                             >
                                                 <Checkbox
                                                     checked={isSelected}
                                                     onCheckedChange={(checked) => handleSelectTransaction(tx.id, !!checked)}
-                                                    className="w-4 h-4 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                                                    className="w-4 h-4 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 flex-shrink-0"
                                                 />
 
                                                 {/* Category Icon */}
                                                 <div className={cn(
-                                                    "h-10 w-10 shrink-0 rounded-full flex items-center justify-center border",
+                                                    "h-8 w-8 md:h-10 md:w-10 shrink-0 rounded-full flex items-center justify-center border",
                                                     tx.type === 'income'
                                                         ? "bg-green-50 text-green-600 border-green-100"
                                                         : tx.type === 'transfer'
                                                             ? "bg-blue-50 text-blue-600 border-blue-100"
                                                             : "bg-gray-50 text-gray-600 border-gray-100"
                                                 )}>
-                                                    <CategoryIcon className="w-5 h-5" strokeWidth={1.5} />
+                                                    <CategoryIcon className="w-4 h-4 md:w-5 md:h-5" strokeWidth={1.5} />
                                                 </div>
 
                                                 {/* Main Content */}
@@ -558,19 +560,19 @@ export default function Transactions() {
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between text-xs text-gray-500">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-medium">
+                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-medium whitespace-nowrap">
                                                                 {tx.category}
                                                             </span>
                                                             {tx.source && (
-                                                                <span className="text-gray-400 border-l border-gray-200 pl-2">
+                                                                <span className="text-gray-400 border-l border-gray-200 pl-2 truncate">
                                                                     {tx.source}
                                                                 </span>
                                                             )}
                                                         </div>
 
                                                         {/* Actions (visible on hover or show placeholder to keep alignment) */}
-                                                        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex items-center gap-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 className="hover:text-amber-600 transition-colors"
                                                             >

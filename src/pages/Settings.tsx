@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuthStore } from "@/store/auth";
 
 export default function Settings() {
-    const { isSyncing, lastSyncTime, forceSync, deleteRemoteBackup, resetLocalData } = useDriveSync();
+    const { isSyncing, lastSyncTime, forceSync, deleteRemoteBackup, resetLocalData, exportDataToFile, importDataFromFile } = useDriveSync();
     const { logout } = useAuthStore();
     const [localSyncTime, setLocalSyncTime] = useState<string | null>(localStorage.getItem('finance_last_sync_time'));
 
@@ -62,6 +62,41 @@ export default function Settings() {
                         >
                             {isSyncing ? "Syncing..." : "Sync Now"}
                         </Button>
+                    </div>
+
+                    <div className="pt-4 border-t space-y-4">
+                        <h3 className="text-sm font-medium text-gray-900">Backup & Restore</h3>
+                        <div className="flex flex-wrap gap-4 items-center">
+                            <Button variant="outline" onClick={exportDataToFile}>
+                                Export Database
+                            </Button>
+
+                            <div className="relative">
+                                <Button variant="outline" onClick={() => document.getElementById('db-upload')?.click()}>
+                                    Import Database
+                                </Button>
+                                <input
+                                    id="db-upload"
+                                    type="file"
+                                    accept=".sqlite3,.db"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        if (e.target.files?.[0]) {
+                                            if (confirm("This will overwrite your current data with the selected file. Continue?")) {
+                                                importDataFromFile(e.target.files[0]);
+                                            }
+                                            e.target.value = ''; // Reset
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            Export your data as a backup file, or restore from a previous backup.
+                            <span className="font-semibold text-amber-600 block mt-1">
+                                Warning: Importing will overwrite both local data and the cloud backup!
+                            </span>
+                        </p>
                     </div>
 
                     <div className="pt-4 border-t">
