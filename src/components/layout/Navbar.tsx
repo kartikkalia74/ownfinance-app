@@ -16,6 +16,7 @@ const navItems = [
     { href: "/categories", label: "Categories" },
     { href: "/upload", label: "Import" },
     { href: "/borrow-lend", label: "Borrow / Lend" },
+    { href: "/settings", label: "Settings" },
 ]
 
 export default function Navbar() {
@@ -32,7 +33,7 @@ export default function Navbar() {
                 </div>
 
                 {/* Center Nav Links */}
-                <div className="flex items-center gap-8">
+                <div className="hidden md:flex items-center gap-8">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.href}

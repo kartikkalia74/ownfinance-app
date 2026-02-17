@@ -318,7 +318,7 @@ export default function Upload() {
                     {transactions.some(t => !t.isDuplicate && !t.isExactMatch) && (
                         <div className="space-y-3">
                             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">New Transactions</h3>
-                            <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-lg border shadow-sm overflow-x-auto">
                                 <TransactionTable
                                     transactions={transactions}
                                     categories={categories}
@@ -340,7 +340,7 @@ export default function Upload() {
                                     {transactions.filter(t => t.isExactMatch).length} found
                                 </div>
                             </div>
-                            <div className="bg-red-50/50 rounded-lg border border-red-200 overflow-hidden">
+                            <div className="bg-red-50/50 rounded-lg border border-red-200 overflow-x-auto">
                                 <TransactionTable
                                     transactions={transactions}
                                     categories={categories}
@@ -362,7 +362,7 @@ export default function Upload() {
                                     {transactions.filter(t => t.isDuplicate && !t.isExactMatch).length} found
                                 </div>
                             </div>
-                            <div className="bg-amber-50/50 rounded-lg border border-amber-200 overflow-hidden">
+                            <div className="bg-amber-50/50 rounded-lg border border-amber-200 overflow-x-auto">
                                 <TransactionTable
                                     transactions={transactions}
                                     categories={categories}

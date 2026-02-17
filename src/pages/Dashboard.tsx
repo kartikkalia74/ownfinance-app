@@ -212,7 +212,7 @@ export default function Dashboard() {
             </header>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                 <MetricCard
                     title="Monthly Spending"
                     amount={`₹${metrics.expenses.toLocaleString()}`}
@@ -235,7 +235,7 @@ export default function Dashboard() {
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100/50">
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100/50">
                     <div className="flex items-baseline justify-between mb-6">
                         <div>
                             <h3 className="text-gray-500 text-sm font-medium">Income vs. Expense</h3>
@@ -248,7 +248,7 @@ export default function Dashboard() {
                             <p className="text-xs text-gray-400 mt-1">Last 6 months</p>
                         </div>
                     </div>
-                    <div className="h-[200px] w-full">
+                    <div className="h-[200px] w-full -ml-2 md:ml-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={areaData}>
                                 <defs>
@@ -269,7 +269,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100/50">
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100/50">
                     <div className="mb-6">
                         <h3 className="text-gray-500 text-sm font-medium">Category Spending</h3>
                         <div className="flex items-baseline gap-2 mt-1">
@@ -320,8 +320,8 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Transactions */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden">
-                <div className="p-6 border-b border-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100/50 overflow-hidden mb-20 md:mb-0">
+                <div className="p-4 md:p-6 border-b border-gray-50">
                     <h3 className="text-lg font-bold text-gray-900">Recent Transactions</h3>
                 </div>
                 <div className="overflow-x-auto">
