@@ -254,6 +254,24 @@ export default function Upload() {
         setTransactions(prev => prev.filter((_, i) => i !== index));
     };
 
+    const warningTransactions = transactions.filter(t => t.isDuplicate && !t.isExactMatch);
+    const allWarningSelected = warningTransactions.length > 0 && warningTransactions.every(t => t.selected);
+    const toggleAllWarning = (select: boolean) => {
+        setTransactions(prev => prev.map(tx => (tx.isDuplicate && !tx.isExactMatch) ? { ...tx, selected: select } : tx));
+    };
+
+    const newTransactions = transactions.filter(t => !t.isDuplicate && !t.isExactMatch);
+    const allNewSelected = newTransactions.length > 0 && newTransactions.every(t => t.selected);
+    const toggleAllNew = (select: boolean) => {
+        setTransactions(prev => prev.map(tx => (!tx.isDuplicate && !tx.isExactMatch) ? { ...tx, selected: select } : tx));
+    };
+
+    const exactTransactions = transactions.filter(t => t.isExactMatch);
+    const allExactSelected = exactTransactions.length > 0 && exactTransactions.every(t => t.selected);
+    const toggleAllExact = (select: boolean) => {
+        setTransactions(prev => prev.map(tx => tx.isExactMatch ? { ...tx, selected: select } : tx));
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -317,7 +335,17 @@ export default function Upload() {
                     {/* New Transactions Section */}
                     {transactions.some(t => !t.isDuplicate && !t.isExactMatch) && (
                         <div className="space-y-3">
-                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">New Transactions</h3>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">New Transactions</h3>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto h-7 text-xs"
+                                    onClick={() => toggleAllNew(!allNewSelected)}
+                                >
+                                    {allNewSelected ? "Unselect All" : "Select All"}
+                                </Button>
+                            </div>
                             <div className="bg-white rounded-lg border shadow-sm overflow-x-auto">
                                 <TransactionTable
                                     transactions={transactions}
@@ -326,6 +354,8 @@ export default function Upload() {
                                     removeTransaction={removeTransaction}
                                     toggleSelection={toggleSelection}
                                     filter={t => !t.isDuplicate && !t.isExactMatch}
+                                    onToggleAll={toggleAllNew}
+                                    allSelected={allNewSelected}
                                 />
                             </div>
                         </div>
@@ -339,6 +369,14 @@ export default function Upload() {
                                 <div className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
                                     {transactions.filter(t => t.isExactMatch).length} found
                                 </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto h-7 text-xs bg-white text-red-700 hover:bg-red-50 hover:text-red-800 border-red-200"
+                                    onClick={() => toggleAllExact(!allExactSelected)}
+                                >
+                                    {allExactSelected ? "Unselect All" : "Select All"}
+                                </Button>
                             </div>
                             <div className="bg-red-50/50 rounded-lg border border-red-200 overflow-x-auto">
                                 <TransactionTable
@@ -348,6 +386,8 @@ export default function Upload() {
                                     removeTransaction={removeTransaction}
                                     toggleSelection={toggleSelection}
                                     filter={t => !!t.isExactMatch}
+                                    onToggleAll={toggleAllExact}
+                                    allSelected={allExactSelected}
                                 />
                             </div>
                         </div>
@@ -361,6 +401,14 @@ export default function Upload() {
                                 <div className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
                                     {transactions.filter(t => t.isDuplicate && !t.isExactMatch).length} found
                                 </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto h-7 text-xs bg-white text-amber-700 hover:bg-amber-50 hover:text-amber-800 border-amber-200"
+                                    onClick={() => toggleAllWarning(!allWarningSelected)}
+                                >
+                                    {allWarningSelected ? "Unselect All" : "Select All"}
+                                </Button>
                             </div>
                             <div className="bg-amber-50/50 rounded-lg border border-amber-200 overflow-x-auto">
                                 <TransactionTable
@@ -370,6 +418,8 @@ export default function Upload() {
                                     removeTransaction={removeTransaction}
                                     toggleSelection={toggleSelection}
                                     filter={t => !!t.isDuplicate && !t.isExactMatch}
+                                    onToggleAll={toggleAllWarning}
+                                    allSelected={allWarningSelected}
                                 />
                             </div>
                         </div>
@@ -444,21 +494,33 @@ const TransactionTable = ({
     updateTransaction,
     removeTransaction,
     toggleSelection,
-    filter
+    filter,
+    onToggleAll,
+    allSelected
 }: {
     transactions: ParsedTransactionWithSelection[],
     categories: Category[],
     updateTransaction: (index: number, field: keyof ParsedTransactionWithSelection, value: any) => void,
     removeTransaction: (index: number) => void,
     toggleSelection: (index: number) => void,
-    filter: (t: ParsedTransactionWithSelection) => boolean
+    filter: (t: ParsedTransactionWithSelection) => boolean,
+    onToggleAll?: (select: boolean) => void,
+    allSelected?: boolean
 }) => {
     return (
         <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-gray-500 border-b">
                 <tr>
                     <th className="px-4 py-3 font-medium w-10">
-                        {/* Global select could go here */}
+                        {onToggleAll !== undefined && (
+                            <input
+                                type="checkbox"
+                                checked={allSelected || false}
+                                onChange={(e) => onToggleAll(e.target.checked)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                title="Select All"
+                            />
+                        )}
                     </th>
                     <th className="px-4 py-3 font-medium">Date</th>
                     <th className="px-4 py-3 font-medium">Description</th>
