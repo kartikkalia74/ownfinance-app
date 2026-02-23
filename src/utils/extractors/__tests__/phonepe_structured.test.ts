@@ -3,8 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// @ts-ignore
-import { extractTransactions } from '../../statementparser/phonepe-statement-parser/index.js';
+import { PhonePeExtractor } from '../phonepe';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,15 +21,30 @@ if (files.length === 0) {
 } else {
     describe('PhonePe Structured Parsing Tests', () => {
         files.forEach(file => {
-            it(`should parse ${file} successfully`, () => {
+            it(`should parse ${file} successfully without invalid data`, () => {
                 const filePath = path.join(TEST_DATA_DIR, file);
                 const fileContent = fs.readFileSync(filePath, 'utf-8');
 
-                const transactions = extractTransactions(fileContent);
+                expect(PhonePeExtractor.identify(fileContent)).toBe(true);
+
+                const transactions = PhonePeExtractor.extract(fileContent);
 
                 expect(transactions).toBeDefined();
                 expect(Array.isArray(transactions)).toBe(true);
                 expect(transactions.length).toBeGreaterThan(0);
+
+                let invalidCount = 0;
+                transactions.forEach((t, index) => {
+                    let isInvalid = false;
+                    if (isNaN(t.amount) || t.amount <= 0) { console.error(`Invalid amount at index ${index}:`, t); isInvalid = true; }
+                    if (!t.date || t.date.includes('Invalid') || t.date.includes('NaN')) { console.error(`Invalid date at index ${index}:`, t); isInvalid = true; }
+                    if (!t.payee || t.payee === 'Unknown') { console.error(`Invalid payee at index ${index}:`, t); isInvalid = true; }
+                    if (t.type !== 'income' && t.type !== 'expense') { console.error(`Invalid type at index ${index}:`, t); isInvalid = true; }
+                    if (isInvalid) invalidCount++;
+                });
+
+                expect(invalidCount).toBe(0);
+                console.log(`Successfully parsed ${transactions.length} valid transactions from ${file}`);
             });
         });
     });
