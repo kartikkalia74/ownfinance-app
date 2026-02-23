@@ -8,6 +8,7 @@ import { SBIExtractor } from './extractors/sbi';
 import { PhonePeExtractor } from './extractors/phonepe';
 import { GenericExtractor } from './extractors/index';
 import { GPayExtractor } from './extractors/gpay';
+import { PNBExtractor } from './extractors/pnb';
 import type { StatementExtractor } from './extractors/index';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -121,6 +122,7 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
         'sbi': SBIExtractor,
         'phonepe': PhonePeExtractor,
         'gpay': GPayExtractor,
+        'pnb': PNBExtractor,
         'generic': GenericExtractor
     };
 

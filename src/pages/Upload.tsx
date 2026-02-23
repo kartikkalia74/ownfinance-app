@@ -293,6 +293,7 @@ export default function Upload() {
                             <SelectItem value="hdfc">HDFC Bank</SelectItem>
                             <SelectItem value="hdfc-credit-card">HDFC Credit Card</SelectItem>
                             <SelectItem value="sbi">SBI</SelectItem>
+                            <SelectItem value="pnb">PNB</SelectItem>
                             <SelectItem value="icici">ICICI Bank</SelectItem>
                             <SelectItem value="generic">Auto-detect (Generic)</SelectItem>
                         </SelectContent>
