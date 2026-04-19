@@ -63,6 +63,10 @@ export default function Transactions() {
     const [isFiltersVisible, setIsFiltersVisible] = useState(true)
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false)
+    const [viewMode, setViewMode] = useState<'monthly' | 'all'>('monthly')
+    const [page, setPage] = useState(1)
+    const [hasMore, setHasMore] = useState(false)
+    const LIMIT = 50
 
     const navigate = useNavigate();
 
@@ -135,37 +139,30 @@ export default function Transactions() {
             let query = "SELECT id, date, payee, category, amount, status, type, source FROM transactions WHERE 1=1";
             const params: any[] = [];
 
-            // Check if any filters are active
-            const isFiltering = (selectedCategory && selectedCategory !== "All") ||
-                (amountRange[0] !== 0 || amountRange[1] !== maxAmount);
-
-            if (isFiltering) {
-                // If filtering: Show last 30 days
-                const thirtyDaysAgo = subDays(new Date(), 30);
-                const dateLimit = format(thirtyDaysAgo, 'yyyy-MM-dd');
-                query += ` AND date >= ?`;
-                params.push(dateLimit);
-
-                if (selectedCategory && selectedCategory !== "All") {
-                    query += ` AND category = ?`;
-                    params.push(selectedCategory);
-                }
-            } else {
-                // Default: Show selected month
-                const monthStr = format(date, 'yyyy-MM');
-                query += ` AND date LIKE '${monthStr}%'`;
+            if (selectedCategory && selectedCategory !== "All") {
+                query += ` AND category = ?`;
+                params.push(selectedCategory);
             }
 
-            // Amount range always applies (even if default)
             query += ` AND ABS(amount) BETWEEN ? AND ?`;
             params.push(amountRange[0]);
             params.push(amountRange[1]);
 
-            // Ensure we get time for proper sorting within the day if available
+            if (viewMode === 'monthly') {
+                const monthStr = format(date, 'yyyy-MM');
+                query += ` AND date LIKE '${monthStr}%'`;
+            }
+
             query += " ORDER BY date DESC, id DESC";
 
+            if (viewMode === 'all') {
+                query += ` LIMIT ? OFFSET ?`;
+                params.push(LIMIT + 1); // fetch one extra to check if has more
+                params.push((page - 1) * LIMIT);
+            }
+
             const result = await exec(query, params);
-            const parsedTransactions = result.map((r: any) => ({
+            let parsedTransactions = result.map((r: any) => ({
                 id: r[0],
                 date: r[1],
                 payee: r[2],
@@ -176,14 +173,45 @@ export default function Transactions() {
                 source: r[7]
             }));
 
+            if (viewMode === 'all') {
+                if (parsedTransactions.length > LIMIT) {
+                    setHasMore(true);
+                    parsedTransactions = parsedTransactions.slice(0, LIMIT);
+                } else {
+                    setHasMore(false);
+                }
+            } else {
+                setHasMore(false);
+            }
+
             setTransactions(parsedTransactions);
 
-            // Calculate monthly summary directly from fetched transactions (or separately?)
-            // If filtering, summary reflects filtered view. If monthly, reflects monthly.
-            // Requirement: "show first montly wise spending grouped"
-            // If filtering, summary should probably reflect the filtered list.
-            const income = parsedTransactions.filter((t: any) => t.type === 'income').reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
-            const expense = parsedTransactions.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
+            // Compute summary from SQL so it covers the whole set, not just current page
+            let summaryQuery = "SELECT type, SUM(ABS(amount)) FROM transactions WHERE 1=1";
+            const summaryParams: any[] = [];
+
+            if (selectedCategory && selectedCategory !== "All") {
+                summaryQuery += ` AND category = ?`;
+                summaryParams.push(selectedCategory);
+            }
+            summaryQuery += ` AND ABS(amount) BETWEEN ? AND ?`;
+            summaryParams.push(amountRange[0]);
+            summaryParams.push(amountRange[1]);
+
+            if (viewMode === 'monthly') {
+                const monthStr = format(date, 'yyyy-MM');
+                summaryQuery += ` AND date LIKE '${monthStr}%'`;
+            }
+            summaryQuery += " GROUP BY type";
+
+            const summaryResult = await exec(summaryQuery, summaryParams);
+            let income = 0;
+            let expense = 0;
+            summaryResult.forEach((row: any) => {
+                if (row[0] === 'income') income = row[1] || 0;
+                if (row[0] === 'expense') expense = row[1] || 0;
+            });
+
             setMonthlySummary({ income, expense });
 
         } catch (error) {
@@ -232,11 +260,15 @@ export default function Transactions() {
 
     useEffect(() => {
         fetchTransactions();
-    }, [date, selectedCategory, amountRange]);
+    }, [date, selectedCategory, amountRange, viewMode, page]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [viewMode, selectedCategory, amountRange, date]);
 
     useEffect(() => {
         setSelectedIds(new Set());
-    }, [date, selectedCategory, amountRange]);
+    }, [date, selectedCategory, amountRange, viewMode, page]);
 
     const formatHeaderDate = (dateStr: string) => {
         try {
@@ -276,69 +308,6 @@ export default function Transactions() {
                 </div>
             </div>
 
-            {/* Month Navigation & Summary */}
-            {!((selectedCategory && selectedCategory !== "All") || (amountRange[0] !== 0 || amountRange[1] !== maxAmount)) && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between col-span-full md:col-span-1">
-                        <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
-                            <ChevronLeft className="w-5 h-5 text-gray-500" />
-                        </Button>
-                        <div className="text-center">
-                            <h2 className="text-lg font-semibold text-gray-900">
-                                {format(date, 'MMMM yyyy')}
-                            </h2>
-                        </div>
-                        <Button variant="ghost" size="icon" onClick={handleNextMonth}>
-                            <ChevronRight className="w-5 h-5 text-gray-500" />
-                        </Button>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Income</p>
-                            <p className="text-xl font-bold text-green-600 mt-1">
-                                {monthlySummary.income.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                            </p>
-                        </div>
-                        <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
-                            <IndianRupee className="w-5 h-5 text-green-600" />
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Expense</p>
-                            <p className="text-xl font-bold text-gray-900 mt-1">
-                                {monthlySummary.expense.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                            </p>
-                        </div>
-                        <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
-                            <IndianRupee className="w-5 h-5 text-gray-900" />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Filter Warning if active */}
-            {((selectedCategory && selectedCategory !== "All") || (amountRange[0] !== 0 || amountRange[1] !== maxAmount)) && (
-                <div className="bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200 mb-6 flex items-center justify-between">
-                    <span>
-                        Showing transactions for the <strong>last 30 days</strong> based on active filters.
-                    </span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-900 hover:bg-amber-100 h-auto py-1"
-                        onClick={() => {
-                            setSelectedCategory("All");
-                            setAmountRange([0, maxAmount]);
-                        }}
-                    >
-                        Clear Filters
-                    </Button>
-                </div>
-            )}
-
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 sticky top-0 bg-gray-50/95 backdrop-blur z-30 py-2 -mx-4 px-4 sm:mx-0 sm:px-0 transition-all">
                 <div className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
@@ -361,11 +330,25 @@ export default function Transactions() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <div className="flex bg-gray-200/50 p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('monthly')}
+                            className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-all", viewMode === 'monthly' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700')}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            onClick={() => setViewMode('all')}
+                            className={cn("px-3 py-1.5 text-xs font-semibold rounded-md transition-all", viewMode === 'all' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700')}
+                        >
+                            All Time
+                        </button>
+                    </div>
                     <Button
                         variant={isFiltersVisible ? "default" : "outline"}
                         size="sm"
                         className={cn(
-                            "gap-2 h-9",
+                            "gap-2 h-8",
                             isFiltersVisible ? "bg-gray-900 text-white hover:bg-gray-800" : "bg-white text-gray-600 border-gray-200"
                         )}
                         onClick={() => setIsFiltersVisible(!isFiltersVisible)}
@@ -375,6 +358,50 @@ export default function Transactions() {
                     </Button>
                 </div>
             </div>
+
+            {/* Summary */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                {viewMode === 'monthly' && (
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between col-span-full md:col-span-1">
+                        <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
+                            <ChevronLeft className="w-5 h-5 text-gray-500" />
+                        </Button>
+                        <div className="text-center">
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                {format(date, 'MMMM yyyy')}
+                            </h2>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+                            <ChevronRight className="w-5 h-5 text-gray-500" />
+                        </Button>
+                    </div>
+                )}
+
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Income</p>
+                        <p className="text-xl font-bold text-green-600 mt-1">
+                            {monthlySummary.income.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                        </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
+                        <IndianRupee className="w-5 h-5 text-green-600" />
+                    </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Expense</p>
+                        <p className="text-xl font-bold text-gray-900 mt-1">
+                            {monthlySummary.expense.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                        </p>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
+                        <IndianRupee className="w-5 h-5 text-gray-900" />
+                    </div>
+                </div>
+            </div>
+
 
             {/* Bulk Actions Bar */}
             {selectedIds.size > 0 && (
@@ -445,7 +472,36 @@ export default function Transactions() {
                             <div className="px-1">
                                 <div className="flex items-center justify-between text-xs font-medium text-gray-500 mb-3">
                                     <span>Amount Range</span>
-                                    <span className="text-gray-900">₹{amountRange[0]} - ₹{amountRange[1]}+</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={amountRange[1]}
+                                                value={amountRange[0]}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    if (!isNaN(val)) setAmountRange([Math.max(0, val), amountRange[1]]);
+                                                }}
+                                                className="w-20 pl-5 pr-1 py-1 bg-white border border-gray-200 rounded text-gray-900 text-xs focus:ring-1 focus:ring-gray-900 focus:border-gray-900 focus:outline-none transition-colors"
+                                            />
+                                        </div>
+                                        <span className="text-gray-400">-</span>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+                                            <input
+                                                type="number"
+                                                min={amountRange[0]}
+                                                value={amountRange[1]}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    if (!isNaN(val)) setAmountRange([amountRange[0], Math.max(amountRange[0], val)]);
+                                                }}
+                                                className="w-20 pl-5 pr-1 py-1 bg-white border border-gray-200 rounded text-gray-900 text-xs focus:ring-1 focus:ring-gray-900 focus:border-gray-900 focus:outline-none transition-colors"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                                 <Slider
                                     defaultValue={[0, maxAmount]}
@@ -596,6 +652,31 @@ export default function Transactions() {
                     })
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {viewMode === 'all' && (transactions.length > 0) && (
+                <div className="flex items-center justify-between pt-6 mt-4 border-t border-gray-100">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="gap-2"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Previous
+                    </Button>
+                    <span className="text-sm font-medium text-gray-600">Page {page}</span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={!hasMore}
+                        className="gap-2"
+                    >
+                        Next <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
+            )}
 
             <TransactionDialog
                 open={isAddDialogOpen}
