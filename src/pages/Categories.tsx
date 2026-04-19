@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
-import { Plus, Pencil, Trash2, ArrowLeft, Clock, Calendar as CalendarIcon, IndianRupee } from "lucide-react"
+import { Plus, Pencil, Trash2, ArrowLeft, Clock, Calendar as CalendarIcon, IndianRupee, ChevronDown, ChevronRight, Eye, EyeOff, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { exec } from "@/db/sqlite"
 import { CategoryDialog } from "@/components/categories/CategoryDialog"
-import { format, isToday, isYesterday, parseISO, isValid } from "date-fns"
+import { format, isToday, isYesterday, parseISO, isValid, parse } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 
@@ -45,6 +45,20 @@ export default function Categories() {
     const [totalTransactions, setTotalTransactions] = useState(0)
     const [monthlyStats, setMonthlyStats] = useState({ income: 0, expense: 0 })
 
+    const [expandedMonth, setExpandedMonth] = useState<string>(format(new Date(), 'yyyy-MM'))
+    const [monthlyAggregates, setMonthlyAggregates] = useState<any[]>([])
+    const [showZeroTx, setShowZeroTx] = useState<boolean>(false)
+    const [selectedFilterCategories, setSelectedFilterCategories] = useState<Set<string>>(new Set())
+
+    const toggleFilterCategory = (categoryName: string) => {
+        setSelectedFilterCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(categoryName)) next.delete(categoryName);
+            else next.add(categoryName);
+            return next;
+        });
+    };
+
     const fetchCategories = async () => {
         try {
             const result = await exec("SELECT * FROM categories ORDER BY name ASC");
@@ -61,8 +75,74 @@ export default function Categories() {
         }
     };
 
+    const fetchMonthlyAggregates = async () => {
+        try {
+            const query = `
+                SELECT 
+                    substr(date, 1, 7) as month,
+                    category,
+                    COUNT(id) as count,
+                    SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END) as income,
+                    SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expense
+                FROM transactions
+                GROUP BY month, category
+                ORDER BY month DESC
+            `;
+            const result = await exec(query);
+            
+            const grouped: Record<string, any> = {};
+            
+            result.forEach((r: any) => {
+                const month = r[0];
+                const catName = r[1];
+                const count = r[2] || 0;
+                const income = r[3] || 0;
+                const expense = r[4] || 0;
+                
+                if (!grouped[month]) {
+                    grouped[month] = {
+                        month,
+                        totalCount: 0,
+                        totalIncome: 0,
+                        totalExpense: 0,
+                        categories: {}
+                    };
+                }
+                
+                grouped[month].categories[catName] = { count, income, expense };
+                grouped[month].totalCount += count;
+                grouped[month].totalIncome += income;
+                grouped[month].totalExpense += expense;
+            });
+            
+            const currentMonthStr = format(new Date(), 'yyyy-MM');
+            if (!grouped[currentMonthStr]) {
+                grouped[currentMonthStr] = {
+                    month: currentMonthStr,
+                    totalCount: 0,
+                    totalIncome: 0,
+                    totalExpense: 0,
+                    categories: {}
+                };
+            }
+            
+            const sortedMonths = Object.values(grouped).sort((a: any, b: any) => b.month.localeCompare(a.month));
+            setMonthlyAggregates(sortedMonths);
+            
+        } catch (error) {
+            console.error("Failed to fetch monthly aggregates", error);
+        }
+    };
+
+    const refreshData = async () => {
+        setIsLoading(true);
+        await Promise.all([fetchCategories(), fetchMonthlyAggregates()]);
+        setIsLoading(false);
+    };
+
     useEffect(() => {
-        fetchCategories();
+        refreshData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchRecentTransactions = async (pageNum = 0, reset = false) => {
@@ -170,7 +250,7 @@ export default function Categories() {
 
         try {
             await exec("DELETE FROM categories WHERE id = ?", [id]);
-            fetchCategories();
+            refreshData();
             if (selectedCategory?.id === id) {
                 setSelectedCategory(null);
             }
@@ -393,51 +473,206 @@ export default function Categories() {
 
     // LIST CATEGORIES VIEW
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-5xl mx-auto pb-20">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">Categories</h1>
-                    <p className="text-gray-500 mt-1">Manage your income and expense categories.</p>
+                    <p className="text-gray-500 mt-1">Manage your spending across months.</p>
                 </div>
                 <Button onClick={handleCreate} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                     <Plus className="h-4 w-4" /> Add Category
                 </Button>
             </div>
 
+            <div className="flex flex-wrap gap-2 my-2">
+                {categories.map((cat) => {
+                    const isSelected = selectedFilterCategories.has(cat.name);
+                    return (
+                        <button
+                            key={cat.id}
+                            onClick={() => toggleFilterCategory(cat.name)}
+                            className={cn(
+                                "px-3 py-1.5 rounded-full text-xs font-medium transition-all border flex items-center gap-2 shadow-sm shrink-0",
+                                isSelected
+                                    ? "bg-gray-900 text-white border-gray-900"
+                                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                            )}
+                        >
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                            {cat.name}
+                        </button>
+                    )
+                })}
+                {selectedFilterCategories.size > 0 && (
+                    <button
+                        onClick={() => setSelectedFilterCategories(new Set())}
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-all border border-transparent flex items-center shrink-0"
+                    >
+                        Clear Filters
+                    </button>
+                )}
+            </div>
+
             {isLoading ? (
                 <div className="text-center py-12 text-gray-500">Loading categories...</div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {categories.map((category) => (
-                        <Card 
-                            key={category.id} 
-                            className="hover:shadow-md transition-all cursor-pointer border-gray-100 hover:border-blue-200"
-                            onClick={() => setSelectedCategory(category)}
-                        >
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="w-4 h-4 rounded-full"
-                                        style={{ backgroundColor: category.color }}
-                                    />
-                                    <div>
-                                        <p className="font-medium text-gray-900 group-hover:text-blue-700">{category.name}</p>
-                                        <Badge variant="secondary" className="text-xs mt-1 capitalize">
-                                            {category.type}
-                                        </Badge>
+                <div className="space-y-4">
+                    {monthlyAggregates.map((monthData) => {
+                        const isExpanded = expandedMonth === monthData.month;
+                        const monthDate = parse(monthData.month, 'yyyy-MM', new Date());
+
+                        const isFiltered = selectedFilterCategories.size > 0;
+                        let displayCount = monthData.totalCount;
+                        let displayIncome = monthData.totalIncome;
+                        let displayExpense = monthData.totalExpense;
+
+                        if (isFiltered) {
+                            displayCount = 0;
+                            displayIncome = 0;
+                            displayExpense = 0;
+                            categories.forEach(cat => {
+                                if (selectedFilterCategories.has(cat.name)) {
+                                    const stats = monthData.categories[cat.name];
+                                    if (stats) {
+                                        displayCount += stats.count;
+                                        displayIncome += stats.income;
+                                        displayExpense += stats.expense;
+                                    }
+                                }
+                            });
+                        }
+
+                        // Hide the entire month if active filters yield zero transactions for that period
+                        if (isFiltered && displayCount === 0) return null;
+
+                        return (
+                            <div key={monthData.month} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all">
+                                {/* Accordion Header */}
+                                <div 
+                                    className={cn(
+                                        "p-4 flex flex-col sm:flex-row sm:items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors",
+                                        isExpanded && "bg-gray-50 border-b border-gray-100"
+                                    )}
+                                    onClick={() => setExpandedMonth(isExpanded ? '' : monthData.month)}
+                                >
+                                    <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                                        <div className="p-1.5 bg-gray-100 rounded-md text-gray-500">
+                                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-900">
+                                                {format(monthDate, 'MMMM yyyy')}
+                                            </h2>
+                                            <p className="text-sm text-gray-500 font-medium">
+                                                {displayCount} transactions
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4 sm:gap-6 ml-[44px] sm:ml-0">
+                                        {displayIncome > 0 && (
+                                            <div className="text-left sm:text-right">
+                                                <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-0.5">Credit</p>
+                                                <p className="text-sm font-bold text-green-600">
+                                                    +{displayIncome.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {displayExpense > 0 && (
+                                            <div className="text-left sm:text-right">
+                                                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-0.5">Debit</p>
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    -{displayExpense.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon" onClick={(e) => handleEdit(category, e)} className="hover:bg-gray-100">
-                                        <Pencil className="h-4 w-4 text-gray-500" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={(e) => handleDelete(category.id, e)} className="hover:bg-red-50">
-                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+
+                                {/* Accordion Content (Categories Grid) */}
+                                {isExpanded && (
+                                    <div className="p-4 sm:p-5 bg-white">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {categories
+                                                .filter(c => selectedFilterCategories.size === 0 || selectedFilterCategories.has(c.name))
+                                                .map((category) => {
+                                                const stats = monthData.categories[category.name] || { count: 0, income: 0, expense: 0 };
+                                                const hasTx = stats.count > 0;
+
+                                                if (!hasTx && !showZeroTx) return null;
+
+                                                return (
+                                                    <Card 
+                                                        key={category.id} 
+                                                        className={cn(
+                                                            "hover:shadow-md transition-all cursor-pointer border-gray-100 group",
+                                                            !hasTx && "opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
+                                                        )}
+                                                        onClick={() => {
+                                                            setDate(monthDate);
+                                                            setViewMode('monthly');
+                                                            setSelectedCategory(category);
+                                                        }}
+                                                    >
+                                                        <CardContent className="p-4 flex flex-col justify-between h-full">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                    <div
+                                                                        className="w-4 h-4 rounded-full shrink-0"
+                                                                        style={{ backgroundColor: category.color }}
+                                                                    />
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-semibold text-gray-900 truncate group-hover:text-blue-700">{category.name}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <Button variant="ghost" size="icon" onClick={(e) => handleEdit(category, e)} className="h-7 w-7 hover:bg-gray-100">
+                                                                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                                                                    </Button>
+                                                                    <Button variant="ghost" size="icon" onClick={(e) => handleDelete(category.id, e)} className="h-7 w-7 hover:bg-red-50">
+                                                                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="flex items-end justify-between mt-auto">
+                                                                <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider">
+                                                                    {category.type}
+                                                                </Badge>
+                                                                
+                                                                {hasTx ? (
+                                                                    <div className="text-right">
+                                                                        {stats.income > 0 && <span className="block text-sm font-bold text-green-600">+{stats.income.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>}
+                                                                        {stats.expense > 0 && <span className="block text-sm font-bold text-gray-900">-{stats.expense.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-right">
+                                                                        <span className="block text-xs font-semibold text-gray-400">0 Items</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )
+                                            })}
+                                        </div>
+
+                                        <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => setShowZeroTx(!showZeroTx)}
+                                                className="text-gray-500 hover:text-gray-900 text-xs font-semibold gap-2"
+                                            >
+                                                {showZeroTx ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                                {showZeroTx ? "Hide Empty Categories" : "Show All Categories"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
             )}
 
@@ -445,7 +680,7 @@ export default function Categories() {
                 open={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 category={editingCategory}
-                onSuccess={fetchCategories}
+                onSuccess={refreshData}
             />
         </div>
     )
