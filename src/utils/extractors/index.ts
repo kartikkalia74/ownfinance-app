@@ -49,5 +49,6 @@ const GenericExtractor: StatementExtractor = {
 
 import { HDFCCreditCardExtractor } from './hdfcCreditCard';
 import { GPayExtractor } from './gpay';
+import { PNBExtractor } from './pnb';
 
-export { HDFCExtractor, HDFCCreditCardExtractor, HDFCAdvancedExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor, GenericExtractor, GPayExtractor };
+export { HDFCExtractor, HDFCCreditCardExtractor, HDFCAdvancedExtractor, ICICIExtractor, SBIExtractor, PhonePeExtractor, GenericExtractor, GPayExtractor, PNBExtractor };
