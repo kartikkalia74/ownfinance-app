@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { exec } from "@/db/sqlite"
+import { EditTransactionDialog } from "@/components/transactions/EditTransactionDialog"
 import { CategoryDialog } from "@/components/categories/CategoryDialog"
 import { format, isToday, isYesterday, parseISO, isValid, parse } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -32,6 +33,7 @@ export default function Categories() {
     const [isLoading, setIsLoading] = useState(true)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+    const [editTransaction, setEditTransaction] = useState<Transaction | null>(null)
 
     // Detailed View State
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
@@ -81,11 +83,9 @@ export default function Categories() {
                 SELECT 
                     substr(date, 1, 7) as month,
                     category,
-                    COUNT(id) as count,
-                    SUM(CASE WHEN type = 'income' THEN ABS(amount) ELSE 0 END) as income,
-                    SUM(CASE WHEN type = 'expense' THEN ABS(amount) ELSE 0 END) as expense
+                    type,
+                    amount
                 FROM transactions
-                GROUP BY month, category
                 ORDER BY month DESC
             `;
             const result = await exec(query);
@@ -94,10 +94,12 @@ export default function Categories() {
             
             result.forEach((r: any) => {
                 const month = r[0];
-                const catName = r[1];
-                const count = r[2] || 0;
-                const income = r[3] || 0;
-                const expense = r[4] || 0;
+                const catString = r[1] || "";
+                const type = r[2];
+                const amount = Math.abs(r[3] || 0);
+
+                const income = type === 'income' ? amount : 0;
+                const expense = type === 'expense' ? amount : 0;
                 
                 if (!grouped[month]) {
                     grouped[month] = {
@@ -108,9 +110,20 @@ export default function Categories() {
                         categories: {}
                     };
                 }
+
+                const catNames = catString ? catString.split(',').map((c: string) => c.trim()) : ["Uncategorized"];
                 
-                grouped[month].categories[catName] = { count, income, expense };
-                grouped[month].totalCount += count;
+                catNames.forEach((catName: string) => {
+                    if (!grouped[month].categories[catName]) {
+                        grouped[month].categories[catName] = { count: 0, income: 0, expense: 0 };
+                    }
+                    grouped[month].categories[catName].count += 1;
+                    grouped[month].categories[catName].income += income;
+                    grouped[month].categories[catName].expense += expense;
+                });
+
+                // Total month stats shouldn't be duplicated for multi-category transactions
+                grouped[month].totalCount += 1;
                 grouped[month].totalIncome += income;
                 grouped[month].totalExpense += expense;
             });
@@ -154,7 +167,7 @@ export default function Categories() {
             
             if (pageNum === 0) {
                 const countRes = await exec(
-                    "SELECT COUNT(*) FROM transactions WHERE category = ?", 
+                    "SELECT COUNT(*) FROM transactions WHERE (',' || category || ',') LIKE ('%,' || ? || ',%')", 
                     [selectedCategory.name]
                 );
                 setTotalTransactions(countRes[0][0]);
@@ -163,7 +176,7 @@ export default function Categories() {
             const query = `
                 SELECT id, date, payee, category, amount, status, type, source 
                 FROM transactions 
-                WHERE category = ? 
+                WHERE (',' || category || ',') LIKE ('%,' || ? || ',%')
                 ORDER BY date DESC, id DESC 
                 LIMIT ? OFFSET ?
             `;
@@ -196,7 +209,7 @@ export default function Categories() {
             const query = `
                 SELECT id, date, payee, category, amount, status, type, source 
                 FROM transactions 
-                WHERE category = ? AND date LIKE ? 
+                WHERE (',' || category || ',') LIKE ('%,' || ? || ',%') AND date LIKE ? 
                 ORDER BY date DESC, id DESC
             `;
             const result = await exec(query, [selectedCategory.name, `${monthStr}%`]);
@@ -256,6 +269,18 @@ export default function Categories() {
             }
         } catch (error) {
             console.error("Failed to delete category", error);
+        }
+    };
+
+    const handleDeleteTransaction = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        try {
+            await exec("DELETE FROM transactions WHERE id = ?", [id]);
+            setTransactions(prev => prev.filter(tx => tx.id !== id));
+            refreshData(); // Refresh aggregate stats
+        } catch (error) {
+            console.error("Failed to delete transaction", error);
         }
     };
 
@@ -437,12 +462,28 @@ export default function Categories() {
                                                                 {tx.type === 'income' ? '+' : ''} {Math.abs(tx.amount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                                             </span>
                                                         </div>
-                                                        <div className="text-xs text-gray-500 flex items-center gap-2">
-                                                            {tx.source && (
-                                                                <span className="bg-gray-100 px-1.5 py-0.5 rounded font-medium">
-                                                                    {tx.source}
-                                                                </span>
-                                                            )}
+                                                        <div className="text-xs text-gray-500 flex items-center justify-between mt-1">
+                                                            <div className="flex items-center gap-2">
+                                                                {tx.source && (
+                                                                    <span className="bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                                                                        {tx.source}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <button
+                                                                    className="hover:text-amber-600 transition-colors p-1"
+                                                                    onClick={(e) => { e.stopPropagation(); setEditTransaction(tx); }}
+                                                                >
+                                                                    <Pencil className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    className="hover:text-red-600 transition-colors p-1"
+                                                                    onClick={(e) => handleDeleteTransaction(tx.id, e)}
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -467,6 +508,24 @@ export default function Categories() {
                         </>
                     )}
                 </div>
+                <EditTransactionDialog
+                    open={!!editTransaction}
+                    onOpenChange={(open) => {
+                        if (!open) setEditTransaction(null);
+                    }}
+                    transaction={editTransaction}
+                    onSave={() => {
+                        if (selectedCategory) {
+                            if (viewMode === 'recent') {
+                                setPage(0);
+                                fetchRecentTransactions(0, true);
+                            } else {
+                                fetchMonthlyTransactions();
+                            }
+                        }
+                        refreshData();
+                    }}
+                />
             </div>
         )
     }
@@ -681,6 +740,24 @@ export default function Categories() {
                 onOpenChange={setIsDialogOpen}
                 category={editingCategory}
                 onSuccess={refreshData}
+            />
+            <EditTransactionDialog
+                open={!!editTransaction}
+                onOpenChange={(open) => {
+                    if (!open) setEditTransaction(null);
+                }}
+                transaction={editTransaction}
+                onSave={() => {
+                    if (selectedCategory) {
+                        if (viewMode === 'recent') {
+                            setPage(0);
+                            fetchRecentTransactions(0, true);
+                        } else {
+                            fetchMonthlyTransactions();
+                        }
+                    }
+                    refreshData();
+                }}
             />
         </div>
     )

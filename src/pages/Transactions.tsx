@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Search, Plus, Upload, FileText, Settings2, SlidersHorizontal, Pencil, Trash2, Filter, ShoppingCart, Car, Zap, Utensils, IndianRupee, Briefcase, Landmark, Smartphone, Globe, Home, GraduationCap, HeartPulse, ChevronLeft, ChevronRight, ArrowRightLeft } from "lucide-react"
 import { TransactionDialog } from "@/components/transactions/TransactionDialog"
+import { EditTransactionDialog } from "@/components/transactions/EditTransactionDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
@@ -60,6 +61,7 @@ export default function Transactions() {
     ])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [editTransaction, setEditTransaction] = useState<Transaction | null>(null)
     const [isFiltersVisible, setIsFiltersVisible] = useState(true)
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [isBulkUpdateDialogOpen, setIsBulkUpdateDialogOpen] = useState(false)
@@ -118,11 +120,20 @@ export default function Transactions() {
 
     const fetchCategories = async () => {
         try {
-            const result = await exec("SELECT DISTINCT category FROM transactions ORDER BY category ASC");
-            const fetchedCategories = result.map((r: any) => ({
-                label: r[0],
-                icon: null
-            })).filter((c: any) => c.label);
+            const result = await exec("SELECT DISTINCT category FROM transactions");
+            const allCats = new Set<string>();
+            result.forEach((r: any) => {
+                if (r[0]) {
+                    r[0].split(',').forEach((c: string) => allCats.add(c.trim()));
+                }
+            });
+            
+            const fetchedCategories = Array.from(allCats)
+                .sort((a, b) => a.localeCompare(b))
+                .map((label: string) => ({
+                    label,
+                    icon: null
+                })).filter((c: any) => c.label);
 
             setCategories([
                 { label: "All", icon: SlidersHorizontal },
@@ -140,7 +151,7 @@ export default function Transactions() {
             const params: any[] = [];
 
             if (selectedCategory && selectedCategory !== "All") {
-                query += ` AND category = ?`;
+                query += ` AND (',' || category || ',') LIKE ('%,' || ? || ',%')`;
                 params.push(selectedCategory);
             }
 
@@ -191,7 +202,7 @@ export default function Transactions() {
             const summaryParams: any[] = [];
 
             if (selectedCategory && selectedCategory !== "All") {
-                summaryQuery += ` AND category = ?`;
+                summaryQuery += ` AND (',' || category || ',') LIKE ('%,' || ? || ',%')`;
                 summaryParams.push(selectedCategory);
             }
             summaryQuery += ` AND ABS(amount) BETWEEN ? AND ?`;
@@ -631,6 +642,7 @@ export default function Transactions() {
                                                         <div className="flex items-center gap-3 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 className="hover:text-amber-600 transition-colors"
+                                                                onClick={() => setEditTransaction(tx)}
                                                             >
                                                                 <Pencil className="w-3.5 h-3.5" />
                                                             </button>
@@ -684,6 +696,17 @@ export default function Transactions() {
                 onSave={() => {
                     fetchTransactions();
                     fetchMaxAmount();
+                    fetchCategories();
+                }}
+            />
+            <EditTransactionDialog
+                open={!!editTransaction}
+                onOpenChange={(open) => {
+                    if (!open) setEditTransaction(null);
+                }}
+                transaction={editTransaction}
+                onSave={() => {
+                    fetchTransactions();
                     fetchCategories();
                 }}
             />
