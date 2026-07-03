@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { parseCSV, parsePDF } from '@/utils/parser';
 import type { ParsedTransaction } from '@/utils/parser';
 import { exec } from '@/db/sqlite';
@@ -42,6 +43,7 @@ export default function Upload() {
     // Password handling state
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
     const [pdfPassword, setPdfPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [pendingFile, setPendingFile] = useState<File | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -488,6 +490,7 @@ export default function Upload() {
                     setPendingFile(null);
                     setPdfPassword("");
                     setErrorMessage(null);
+                    setShowPassword(false);
                 }
             }}>
                 <DialogContent className="sm:max-w-md">
@@ -502,7 +505,7 @@ export default function Upload() {
                             <Label htmlFor="pdf-password">Password</Label>
                             <Input
                                 id="pdf-password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={pdfPassword}
                                 onChange={(e) => setPdfPassword(e.target.value)}
                                 placeholder="Enter PDF password"
@@ -512,6 +515,19 @@ export default function Upload() {
                                     }
                                 }}
                             />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="show-password"
+                                checked={showPassword}
+                                onCheckedChange={(checked) => setShowPassword(checked === true)}
+                            />
+                            <Label
+                                htmlFor="show-password"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                                Show password
+                            </Label>
                         </div>
                         {errorMessage && (
                             <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-2 rounded">
