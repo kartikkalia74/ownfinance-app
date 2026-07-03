@@ -2,6 +2,12 @@ import type { ParsedTransaction } from '../parser';
 import { HDFCAdvancedExtractor } from './hdfcAdvanced';
 import { HDFCCreditCardExtractor } from './hdfcCreditCard';
 import { SBIExtractor } from './sbi';
+import { PhonePeExtractor } from './phonepe';
+import { GPayExtractor as GPAYExtractor } from './gpay';
+import { ICICIExtractor } from './icici';
+import { PNBExtractor } from './pnb';
+
+export { PhonePeExtractor, GPAYExtractor, ICICIExtractor, PNBExtractor };
 
 // ============================================================
 // UTILITY HELPERS
@@ -240,271 +246,25 @@ export const BankOfBarodaExtractor = {
 // ============================================================
 // 4. PNB (PUNJAB NATIONAL BANK) EXTRACTOR
 // ============================================================
-export const PNBExtractor = {
-  name: 'pnb',
-  identify(text: string): boolean {
-    return (
-      /punjab\s*national\s*bank/i.test(text) ||
-      text.includes('pnbindia.in') ||
-      text.includes('PNB ONE') ||
-      text.includes('PUNB0') ||           // IFSC prefix unique to PNB
-      (/\bPNB\b/.test(text) && /statement\s*of\s*account/i.test(text))
-    );
-  },
-
-  extract(text: string): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-
-    // Core row regex — matches the exact PNB ONE column order:
-    // DD/MM/YYYY  AMOUNT(digits + optional decimal)  DR|CR  BALANCE  REMARKS(rest of line)
-    const ROW_RE =
-      /(\d{2}\/\d{2}\/\d{4})\s+([\d,]+(?:\.\d+)?)\s+(DR|CR)\s+([\d,]+(?:\.\d+)?)\s+(.+?)(?=\d{2}\/\d{2}\/\d{4}|$)/gs;
-
-    // Strip footer noise before parsing so remarks don't bleed into next match
-    const body = text
-      .replace(/\*\*\*Generated through PNB ONE\*\*\*/g, '')
-      .replace(/Unless constituent.*/s, '')   // everything after the footer disclaimer
-      .replace(/Date:\s*\d{2}\/\d{2}\/\d{4}.*/g, '');
-
-    let m: RegExpExecArray | null;
-    while ((m = ROW_RE.exec(body)) !== null) {
-      const [, rawDate, rawAmt, drCr, rawBal, remarks] = m;
-
-      const date = normaliseDate(rawDate);
-      if (!date) continue;
-
-      const amount  = parseFloat(rawAmt.replace(/,/g, ''));
-      const balance = parseFloat(rawBal.replace(/,/g, ''));
-      const payee   = remarks.trim().replace(/\s+/g, ' ');
-
-      if (!amount) continue;
-
-      // Pull UPI ref / txn type from narration
-      const { ref, cheque, txnType } = extractRef(payee);
-
-      // UPI narrations carry their own DR/CR flag — trust the DR|CR column
-      transactions.push({
-        date,
-        payee,
-        category: 'Uncategorized',
-        amount,
-        type: drCr === 'DR' ? 'expense' : 'income',
-        status: 'completed',
-        balance,
-        source: 'pnb',
-        referenceNumber: ref,
-        chequeNumber: cheque,
-        transactionType: txnType ?? inferTxnType(payee),
-        raw: m[0]
-      });
-    }
-
-    return transactions;
-  },
-};
-
-// Infer transaction type from PNB narration prefixes
-function inferTxnType(narration: string): string {
-  if (/^UPI\//i.test(narration))    return 'UPI';
-  if (/^NEFT\//i.test(narration))   return 'NEFT';
-  if (/^RTGS\//i.test(narration))   return 'RTGS';
-  if (/^IMPS\//i.test(narration))   return 'IMPS';
-  if (/^ATW\//i.test(narration))    return 'ATM';
-  if (/^CLG\//i.test(narration))    return 'Clearing';
-  if (/^SI\//i.test(narration))     return 'Standing Instruction';
-  if (/INT\.PD/i.test(narration))   return 'Interest';
-  if (/SMS CHRG/i.test(narration))  return 'Charge';
-  if (/Ac xfr/i.test(narration))    return 'Transfer';
-  if (/RCRADJ/i.test(narration))    return 'Reversal';
-  return 'Other';
-}
+// PNBExtractor implementation imported from separate file
 
 
 // ============================================================
 // 5. ICICI BANK EXTRACTOR
 // ============================================================
-export const ICICIExtractor = {
-  name: 'icici',
-  identify(text: string): boolean {
-    return (
-      /icici\s*bank/i.test(text) ||
-      text.includes('icicibank.com') ||
-      (text.includes('ICICI') && /account\s*statement/i.test(text))
-    );
-  },
-
-  extract(text: string): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    const rowRe = /^(\d{2}\/\d{2}\/\d{4})\s+(.*?)\s+([A-Z0-9\/\-]{0,30})?\s{2,}([\d,]+\.\d{2})?\s+([\d,]+\.\d{2})?\s+([\d,]+\.\d{2})?$/;
-
-    for (const line of lines) {
-      const m = line.match(rowRe);
-      if (!m) continue;
-
-      const date = normaliseDate(m[1]);
-      if (!date) continue;
-
-      const remarks = m[2].trim();
-      const withdrawal = m[4] ? parseFloat(m[4].replace(/,/g, '')) : 0;
-      const deposit = m[5] ? parseFloat(m[5].replace(/,/g, '')) : 0;
-
-      if (!withdrawal && !deposit) continue;
-
-      transactions.push({
-        date,
-        payee: remarks || 'Unknown',
-        category: 'Uncategorized',
-        amount: withdrawal || deposit,
-        type: withdrawal > 0 ? 'expense' : 'income',
-        status: 'completed',
-        source: 'icici',
-        raw: line
-      });
-    }
-
-    return transactions;
-  },
-};
+// ICICIExtractor implementation imported from separate file
 
 
 // ============================================================
 // 6. PHONEPE STATEMENT EXTRACTOR
 // ============================================================
-export const PhonePeExtractor = {
-  name: 'phonepe',
-  identify(text: string): boolean {
-    return (
-      /phonepe/i.test(text) ||
-      text.includes('phonepe.com') ||
-      (text.includes('PhonePe') && text.includes('Transaction'))
-    );
-  },
-
-  extract(text: string): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    const rowRe = /^(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})\s+(.*?)\s+(Credit|Debit)\s+(?:Rs\.?|₹)?\s*([\d,]+(?:\.\d{2})?)\s*(Completed|Pending|Failed)?$/i;
-
-    for (const line of lines) {
-      const m = line.match(rowRe);
-      if (!m) continue;
-
-      const date = normaliseDate(m[1]);
-      if (!date) continue;
-
-      const description = m[2].trim();
-      const direction = m[3].toLowerCase();
-      const amount = parseFloat(m[4].replace(/,/g, ''));
-
-      if (!amount) continue;
-
-      transactions.push({
-        date,
-        payee: description || 'PhonePe Transaction',
-        category: 'Uncategorized',
-        amount,
-        type: direction === 'debit' ? 'expense' : 'income',
-        status: 'completed',
-        source: 'phonepe',
-        raw: line
-      });
-    }
-
-    return transactions;
-  },
-};
+// PhonePeExtractor implementation imported from separate file
 
 
 // ============================================================
 // 7. GPAY (GOOGLE PAY) STATEMENT EXTRACTOR
 // ============================================================
-export const GPAYExtractor = {
-  name: 'gpay',
-  identify(text: string): boolean {
-    return (
-      /google\s*pay/i.test(text) ||
-      /\bgpay\b/i.test(text) ||
-      (text.includes('Amount (INR)') && text.includes('Transaction ID'))
-    );
-  },
-
-  extractFromRows(rows: string[][]): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-    if (!rows.length) return transactions;
-
-    const headerIdx = rows.findIndex(r =>
-      r.some(cell => /date/i.test(cell)) &&
-      r.some(cell => /amount/i.test(cell))
-    );
-    if (headerIdx < 0) return transactions;
-
-    const headers = rows[headerIdx].map(h => h.toLowerCase().trim());
-    const dateIdx = headers.findIndex(h => h.includes('date'));
-    const descIdx = headers.findIndex(h => h.includes('description') || h.includes('narration') || h.includes('details'));
-    const amtIdx = headers.findIndex(h => h.includes('amount'));
-
-    for (let i = headerIdx + 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row[dateIdx] || !row[amtIdx]) continue;
-
-      const date = normaliseDate(row[dateIdx]);
-      if (!date) continue;
-
-      const rawAmt = row[amtIdx].replace(/[₹Rs,\s]/g, '');
-      const amount = Math.abs(parseFloat(rawAmt));
-      if (isNaN(amount) || amount === 0) continue;
-
-      const isDebit = parseFloat(rawAmt) < 0 || /debit/i.test(row[amtIdx]);
-      const description = descIdx >= 0 ? row[descIdx].trim() : 'GPay Transaction';
-
-      transactions.push({
-        date,
-        payee: description,
-        category: 'Uncategorized',
-        amount,
-        type: isDebit ? 'expense' : 'income',
-        status: 'completed',
-        source: 'gpay',
-        raw: row
-      });
-    }
-
-    return transactions;
-  },
-
-  extract(text: string): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-    const rowRe = /^(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|\d{2}\/\d{2}\/\d{4})\s+(.*?)\s+(?:Rs\.?|₹|-?)\s*([\d,]+(?:\.\d{2})?)\s*(Completed|Pending|Failed)?$/i;
-
-    for (const line of lines) {
-      const m = line.match(rowRe);
-      if (!m) continue;
-      const date = normaliseDate(m[1]);
-      if (!date) continue;
-      const description = m[2].trim();
-      const amount = parseFloat(m[3].replace(/,/g, ''));
-      if (!amount) continue;
-      const isDebit = /paid|sent|debit/i.test(description + line);
-
-      transactions.push({
-        date,
-        payee: description,
-        category: 'Uncategorized',
-        amount,
-        type: isDebit ? 'expense' : 'income',
-        status: 'completed',
-        source: 'gpay',
-        raw: line
-      });
-    }
-    return transactions;
-  },
-};
+// GPAYExtractor implementation imported from separate file
 
 
 // ============================================================

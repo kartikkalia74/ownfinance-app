@@ -137,6 +137,18 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
 
     ALL_EXTRACTORS.forEach(e => {
         extractors[e.name] = e;
+        extractors[e.name.toLowerCase()] = e;
+
+        // Also map specific dropdown values to standard names
+        if (e.name.toLowerCase().startsWith('icici')) {
+            extractors['icici'] = e;
+        }
+        if (e.name.toLowerCase().startsWith('hdfc') && !e.name.toLowerCase().includes('credit')) {
+            extractors['hdfc'] = e;
+        }
+        if (e.name.toLowerCase() === 'gpay' || e.name.toLowerCase() === 'google pay') {
+            extractors['gpay'] = e;
+        }
     });
 
     let extractor = GenericExtractor;
