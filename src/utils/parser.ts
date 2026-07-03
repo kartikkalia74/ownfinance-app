@@ -1,9 +1,9 @@
 import * as Papa from 'papaparse';
-import * as pdfjs from 'pdfjs-dist';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { ALL_EXTRACTORS, autoDetectExtractor } from './extractors/bank-extractors';
 import { GenericExtractor } from './extractors/index';
 
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
