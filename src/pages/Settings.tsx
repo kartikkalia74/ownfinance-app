@@ -78,7 +78,7 @@ export default function Settings() {
                                 <input
                                     id="db-upload"
                                     type="file"
-                                    accept=".sqlite3,.db"
+                                    accept=".sqlite3,.db,application/x-sqlite3,application/octet-stream"
                                     className="hidden"
                                     onChange={(e) => {
                                         if (e.target.files?.[0]) {

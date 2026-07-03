@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { parseCSV, parsePDF } from '@/utils/parser';
 import type { ParsedTransaction } from '@/utils/parser';
 import { exec } from '@/db/sqlite';
@@ -42,6 +43,7 @@ export default function Upload() {
     // Password handling state
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
     const [pdfPassword, setPdfPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [pendingFile, setPendingFile] = useState<File | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -55,7 +57,8 @@ export default function Upload() {
         fetchCategories();
     }, []);
 
-    const [statementType, setStatementType] = useState<string>('phonepe');
+    const [statementType, setStatementType] = useState<string>('auto');
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
     // Fetch existing transactions for duplicate detection
     useEffect(() => {
@@ -102,15 +105,29 @@ export default function Upload() {
         setTransactions(processed);
     }, [existingSignatures]);
 
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: any[]) => {
         setIsProcessing(true);
         try {
+            if (acceptedFiles.length === 0) {
+                if (fileRejections && fileRejections.length > 0) {
+                    const rejection = fileRejections[0];
+                    const errors = rejection.errors.map((e: any) => e.message).join(', ');
+                    alert(`File rejected: ${rejection.file.name}. Reason: ${errors || 'Invalid file type'}. Please upload a valid CSV or PDF bank statement.`);
+                } else {
+                    alert('No file selected.');
+                }
+                setIsProcessing(false);
+                return;
+            }
+
             const file = acceptedFiles[0];
+            setUploadedFile(file);
             let parsed: ParsedTransaction[] = [];
 
+            const isPDF = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+            const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'text/plain';
 
-
-            if (file.type === 'application/pdf') {
+            if (isPDF) {
                 try {
                     parsed = await parsePDF(file, statementType);
                 } catch (error: any) {
@@ -123,30 +140,40 @@ export default function Upload() {
                     }
                     throw error;
                 }
-            } else {
+            } else if (isCSV) {
                 parsed = await parseCSV(file);
+            } else {
+                alert('Unsupported file type. Please upload a PDF or CSV file.');
+                setIsProcessing(false);
+                return;
             }
 
             processTransactions(parsed);
+            if (parsed.length > 0 && parsed[0].source && statementType === 'auto') {
+                setStatementType(parsed[0].source);
+            }
         } catch (error: any) {
-            console.error('Failed to parse file', error);
-            alert('Error parsing file');
+            if (error.name === 'ParsingError') {
+                const blob = new Blob([error.rawText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const fileName = acceptedFiles[0] ? acceptedFiles[0].name : 'statement';
+                a.download = `extracted_text_${fileName}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Could not detect any transactions. The raw extracted text has been downloaded for debugging.');
+                setTransactions([]);
+            } else {
+                console.error('Failed to parse file', error);
+                alert('Error parsing file');
+            }
         } finally {
             if (!showPasswordDialog) {
                 setIsProcessing(false);
             }
-            // Note: if showing password dialog, we keep processing state true or handle it there.
-            // Actually, in catch block above for password, we set isProcessing(false).
-            // So here we only setIsProcessing(false) if we didn't trigger password dialog?
-            // Let's refine the catch block logic in previous replacement.
-            // See earlier replacement of lines 65-72.
-            // It returns early on password exception.
-            // So this finally block runs only if no early return? 
-            // Wait, try-catch is inside onDrop? Yes.
-            // If I return early from catch, finally block still runs? YES.
-            // So I need to be careful.
-            // In the catch block I set setIsProcessing(false).
-            // In finally I should probably check if pendingFile is set.
         }
     }, [statementType, existingSignatures, processTransactions, showPasswordDialog]);
 
@@ -160,6 +187,9 @@ export default function Upload() {
         try {
             const parsed = await parsePDF(pendingFile, statementType, pdfPassword);
             processTransactions(parsed);
+            if (parsed.length > 0 && parsed[0].source && statementType === 'auto') {
+                setStatementType(parsed[0].source);
+            }
 
             // Success
             setShowPasswordDialog(false);
@@ -169,6 +199,18 @@ export default function Upload() {
             console.error('Failed to parse PDF with password', error);
             if (error.name === 'PasswordException' || error.message?.includes('Password')) {
                 setErrorMessage("Incorrect password. Please try again.");
+            } else if (error.name === 'ParsingError') {
+                const blob = new Blob([error.rawText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `extracted_text_${pendingFile.name}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setErrorMessage("Could not detect any transactions. The raw text has been downloaded.");
+                setTransactions([]);
             } else {
                 setErrorMessage("Failed to parse PDF. The file might be corrupted.");
             }
@@ -182,36 +224,48 @@ export default function Upload() {
         onDrop,
         accept: {
             'text/csv': ['.csv'],
-            'application/pdf': ['.pdf']
+            'text/plain': ['.csv', '.txt'],
+            'application/pdf': ['.pdf'],
+            'application/octet-stream': ['.pdf', '.csv']
         },
         maxFiles: 1
     });
 
-    // Update onDrop to use the extract processTransactions function logic if possible or keep duplicate
-    // To avoid massive refactor of onDrop, I'll copy the logic logic into onDrop as well OR refactor onDrop to use processTransactions.
-    // Given the multi-replace constraint, better to allow code duplication or small refactor.
-    // I noticed I already replaced the onDrop `parsed` logic mostly. 
-    // Wait, I inserted `processTransactions` definition BEFORE `onDrop` used it?
-    // StartLayout issue: `onDrop` is defined above this block.
-    // `onDrop` is lines 65-130. This replacement block is replacing lines 132-139 (Dropzone hook).
-    // So `processTransactions` is defined AFTER `onDrop`. That won't work if `onDrop` calls it.
-    // However, `onDrop` does NOT call `processTransactions` in my previous edit. It still has the logic inline.
-    // I should make `onDrop` use `processTransactions`.
-    // But `processTransactions` needs to be defined BEFORE `onDrop` or hoisted.
-
-    // Plan adjustment:
-    // 1. Define `processTransactions` using useCallback BEFORE `onDrop`.
-    // 2. Update `onDrop` to use `processTransactions`.
-    // 3. Add `handlePasswordSubmit`.
-
-    // I will execute this via separate tool calls or careful ordering.
-    // Since I cannot reorder already written code easily without big replacing, I'll do this:
-    // I'll replace the `useCallback` of `onDrop` to usage of `processTransactions`, AND define `processTransactions` before it.
-    // `onDrop` starts at line 65.
-    // So I need to insert `processTransactions` before line 65.
-
-    // Let's discard this chunk and do it properly.
-    // I'll update the chunks.
+    const handleStatementTypeChange = async (newType: string) => {
+        setStatementType(newType);
+        if (uploadedFile && newType !== 'auto') {
+            setIsProcessing(true);
+            try {
+                let parsed: ParsedTransaction[] = [];
+                const isPDF = uploadedFile.name.toLowerCase().endsWith('.pdf') || uploadedFile.type === 'application/pdf';
+                if (isPDF) {
+                    parsed = await parsePDF(uploadedFile, newType, pdfPassword || undefined);
+                } else {
+                    parsed = await parseCSV(uploadedFile);
+                }
+                processTransactions(parsed);
+            } catch (error: any) {
+                if (error.name === 'ParsingError') {
+                    const blob = new Blob([error.rawText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `extracted_text_${uploadedFile.name}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    alert('Could not detect any transactions. The raw extracted text has been downloaded for debugging.');
+                    setTransactions([]);
+                } else {
+                     console.error('Failed to parse file', error);
+                     alert('Error parsing file with new type');
+                }
+            } finally {
+                setIsProcessing(false);
+            }
+        }
+    };
 
 
     const handleSave = async () => {
@@ -280,26 +334,28 @@ export default function Upload() {
             </div>
 
             {/* Bank Selection */}
-            {transactions.length === 0 && (
-                <div className="w-full max-w-xs">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Statement Source</label>
-                    <Select value={statementType} onValueChange={setStatementType}>
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Bank / Source" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="phonepe">PhonePe</SelectItem>
-                            <SelectItem value="gpay">Google Pay</SelectItem>
-                            <SelectItem value="hdfc">HDFC Bank</SelectItem>
-                            <SelectItem value="hdfc-credit-card">HDFC Credit Card</SelectItem>
-                            <SelectItem value="sbi">SBI</SelectItem>
-                            <SelectItem value="pnb">PNB</SelectItem>
-                            <SelectItem value="icici">ICICI Bank</SelectItem>
-                            <SelectItem value="generic">Auto-detect (Generic)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
+            <div className="w-full max-w-xs mb-6">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Statement Source</label>
+                <Select value={statementType} onValueChange={handleStatementTypeChange}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Bank / Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="auto">Auto-detect</SelectItem>
+                        <SelectItem value="phonepe">PhonePe</SelectItem>
+                        <SelectItem value="gpay">Google Pay</SelectItem>
+                        <SelectItem value="hdfc">HDFC Bank</SelectItem>
+                        <SelectItem value="hdfc-credit-card">HDFC Credit Card</SelectItem>
+                        <SelectItem value="sbi">SBI</SelectItem>
+                        <SelectItem value="pnb">PNB</SelectItem>
+                        <SelectItem value="icici">ICICI Bank</SelectItem>
+                        <SelectItem value="axis">Axis Bank</SelectItem>
+                        <SelectItem value="kotak">Kotak Mahindra</SelectItem>
+                        <SelectItem value="bob">Bank of Baroda</SelectItem>
+                        <SelectItem value="generic">Generic/Fallback</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
 
             {transactions.length === 0 ? (
                 <Card className="border-2 border-dashed border-gray-200">
@@ -434,6 +490,7 @@ export default function Upload() {
                     setPendingFile(null);
                     setPdfPassword("");
                     setErrorMessage(null);
+                    setShowPassword(false);
                 }
             }}>
                 <DialogContent className="sm:max-w-md">
@@ -448,7 +505,7 @@ export default function Upload() {
                             <Label htmlFor="pdf-password">Password</Label>
                             <Input
                                 id="pdf-password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={pdfPassword}
                                 onChange={(e) => setPdfPassword(e.target.value)}
                                 placeholder="Enter PDF password"
@@ -458,6 +515,19 @@ export default function Upload() {
                                     }
                                 }}
                             />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="show-password"
+                                checked={showPassword}
+                                onCheckedChange={(checked) => setShowPassword(checked === true)}
+                            />
+                            <Label
+                                htmlFor="show-password"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                                Show password
+                            </Label>
                         </div>
                         {errorMessage && (
                             <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-2 rounded">
