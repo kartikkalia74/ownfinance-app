@@ -9,7 +9,7 @@ const DOMESTIC_TRANSACTION_REGEX = /(\d{2}\/\d{2}\/\d{4})\|\s+(\d{2}:\d{2})\s+(.
 const INTERNATIONAL_TRANSACTION_REGEX = /(\d{2}\/\d{2}\/\d{4})\s+\|\s+(\d{2}:\d{2})\s+(.+?)\s+(?:USD\s+([\d,]+\.\d{2})\s+)?C\s+([\d,]+\.\d{2})\s+l/g;
 
 export const HDFCCreditCardExtractor: StatementExtractor = {
-    name: 'HDFC Credit Card',
+    name: 'hdfc-credit-card',
     identify: (text: string) => text.includes('Domestic Transactions') || text.includes('International Transactions') || (text.includes('HDFC BANK') && text.includes('Credit Card')),
     extract: (text: string) => {
         const transactions: ParsedTransaction[] = [];
@@ -38,7 +38,7 @@ export const HDFCCreditCardExtractor: StatementExtractor = {
                 amount: amount,
                 type: isCreditTransaction ? 'income' : 'expense',
                 status: 'completed',
-                source: 'HDFC Credit Card',
+                source: 'hdfc-credit-card',
                 raw: match[0]
             });
         }
@@ -59,7 +59,7 @@ export const HDFCCreditCardExtractor: StatementExtractor = {
                 amount: inrAmount,
                 type: 'expense', // Assuming intl txns are mostly expenses
                 status: 'completed',
-                source: 'HDFC Credit Card',
+                source: 'hdfc-credit-card',
                 raw: match[0]
             });
         }

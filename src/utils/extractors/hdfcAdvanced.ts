@@ -3,7 +3,7 @@ import type { StatementExtractor } from './index';
 import { extractTransactionsAdvanced } from '../statementparser/hdfc-statement-parser/rejex.js';
 
 export const HDFCAdvancedExtractor: StatementExtractor = {
-    name: 'HDFC Bank (Advanced)',
+    name: 'hdfc',
     identify: (text: string) => text.includes('HDFC BANK') || text.includes('HDFC Bank'),
     extract: (text: string) => {
         console.log("hdfc advanced extractor")
@@ -35,6 +35,7 @@ export const HDFCAdvancedExtractor: StatementExtractor = {
                 amount: Math.abs(tx.withdrawal || tx.deposit || 0),
                 type: (tx.withdrawal > 0) ? 'expense' : 'income',
                 status: 'completed',
+                source: 'hdfc',
                 raw: tx
             };
         });

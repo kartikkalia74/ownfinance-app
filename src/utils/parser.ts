@@ -1,21 +1,22 @@
 import * as Papa from 'papaparse';
 import * as pdfjs from 'pdfjs-dist';
-import { HDFCExtractor } from './extractors/hdfc';
-import { HDFCAdvancedExtractor } from './extractors/hdfcAdvanced';
-import { HDFCCreditCardExtractor } from './extractors/hdfcCreditCard';
-import { ICICIExtractor } from './extractors/icici';
-import { SBIExtractor } from './extractors/sbi';
-import { PhonePeExtractor } from './extractors/phonepe';
+import { ALL_EXTRACTORS, autoDetectExtractor } from './extractors/bank-extractors';
 import { GenericExtractor } from './extractors/index';
-import { GPayExtractor } from './extractors/gpay';
-import { PNBExtractor } from './extractors/pnb';
-import type { StatementExtractor } from './extractors/index';
 
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
     pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+}
+
+export class ParsingError extends Error {
+    rawText: string;
+    constructor(message: string, rawText: string) {
+        super(message);
+        this.name = 'ParsingError';
+        this.rawText = rawText;
+    }
 }
 
 export interface ParsedTransaction {
@@ -27,6 +28,10 @@ export interface ParsedTransaction {
     type: 'income' | 'expense';
     status: 'completed';
     source?: string;
+    balance?: number;
+    referenceNumber?: string;
+    chequeNumber?: string;
+    transactionType?: string;
     raw: any;
 }
 
@@ -83,30 +88,42 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
 
-        // Group text items by Y coordinate (row)
-        // Using a small tolerance for slight misalignments could be good, but Math.floor is a simple start
-        const rows: Record<number, { str: string; x: number }[]> = {};
+        // Better row grouping with a threshold
+        const items = textContent.items.map((item: any) => ({
+            str: item.str,
+            x: item.transform[4],
+            y: item.transform[5],
+        }));
 
-        textContent.items.forEach((item: any) => {
-            // item.transform[5] is the Y coordinate (origin bottom-left)
-            const y = Math.floor(item.transform[5]);
+        // Sort items from top to bottom (PDF y is 0 at bottom, so higher y is top)
+        items.sort((a: any, b: any) => b.y - a.y);
 
-            if (!rows[y]) {
-                rows[y] = [];
+        const rows: { y: number; items: typeof items }[] = [];
+        const Y_TOLERANCE = 4; // 4px tolerance
+
+        items.forEach((item: any) => {
+            let placed = false;
+            for (const row of rows) {
+                if (Math.abs(row.y - item.y) <= Y_TOLERANCE) {
+                    row.items.push(item);
+                    placed = true;
+                    break;
+                }
             }
-            rows[y].push({ str: item.str, x: item.transform[4] });
+            if (!placed) {
+                rows.push({ y: item.y, items: [item] });
+            }
         });
 
-        // Sort rows top-to-bottom (PDF Y starts from bottom, so higher Y is higher up)
-        const sortedYs = Object.keys(rows).map(Number).sort((a, b) => b - a);
-
         let pageText = '';
-        sortedYs.forEach(y => {
-            // Sort items in the row left-to-right
-            const items = rows[y].sort((a, b) => a.x - b.x);
-            // Join items with space
-            const line = items.map(item => item.str).join(' ');
-            pageText += line + '\n';
+        rows.forEach(row => {
+            // Sort items left to right
+            row.items.sort((a: any, b: any) => a.x - b.x);
+            // Join items with space, trimming extra whitespace
+            const line = row.items.map((item: any) => item.str).join(' ').replace(/\s{2,}/g, ' ').trim();
+            if (line) {
+                pageText += line + '\n';
+            }
         });
 
         fullText += pageText + '\n';
@@ -114,32 +131,32 @@ export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: st
     }
 
     // Available extractors
-    const extractors: Record<string, StatementExtractor> = {
-        'hdfc': HDFCAdvancedExtractor,
-        'hdfc-credit-card': HDFCCreditCardExtractor,
-        'hdfc-advanced': HDFCAdvancedExtractor,
-        'icici': ICICIExtractor,
-        'sbi': SBIExtractor,
-        'phonepe': PhonePeExtractor,
-        'gpay': GPayExtractor,
-        'pnb': PNBExtractor,
+    const extractors: Record<string, any> = {
         'generic': GenericExtractor
     };
 
+    ALL_EXTRACTORS.forEach(e => {
+        extractors[e.name] = e;
+    });
+
     let extractor = GenericExtractor;
 
-    if (extractorKey && extractors[extractorKey]) {
+    if (extractorKey && extractorKey !== 'auto' && extractors[extractorKey]) {
         extractor = extractors[extractorKey];
     } else {
         // Auto-detect
-        const allExtractors = Object.values(extractors);
-        // Prioritize specialized extractors over Generic
-        extractor = allExtractors.find(e => e.name !== 'Generic' && e.identify(fullText)) || GenericExtractor;
+        extractor = autoDetectExtractor(fullText) || GenericExtractor;
     }
 
     console.log(`Using extractor: ${extractor.name}`);
     // console.log('DEBUG: Extracted Text:\n', fullText);
-    return extractor.extract(fullText);
+    const transactions = extractor.extract(fullText);
+    
+    if (transactions.length === 0) {
+        throw new ParsingError("Failed to parse any transactions from the document.", fullText);
+    }
+    
+    return transactions;
 };
 
 export const parsePDF = async (file: File, extractorKey?: string, password?: string): Promise<ParsedTransaction[]> => {

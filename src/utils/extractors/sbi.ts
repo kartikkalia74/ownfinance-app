@@ -2,7 +2,7 @@ import type { StatementExtractor } from './index';
 import type { ParsedTransaction } from '../parser';
 
 export const SBIExtractor: StatementExtractor = {
-    name: 'SBI',
+    name: 'sbi',
     identify: (text: string) => text.includes('STATE BANK OF INDIA') || text.includes('State Bank of India') || text.includes('SBI'),
     extract: (text: string) => {
         console.log(text)
