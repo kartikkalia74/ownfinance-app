@@ -80,7 +80,7 @@ export const parseCSV = (file: File): Promise<ParsedTransaction[]> => {
 
 
 export const parsePDFBuffer = async (arrayBuffer: ArrayBuffer, extractorKey?: string, password?: string): Promise<ParsedTransaction[]> => {
-    const pdf = await pdfjs.getDocument({ data: arrayBuffer, password }).promise;
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer), password }).promise;
     let fullText = '';
     console.log(`DEBUG: PDF loaded. Num pages: ${pdf.numPages}`);
 

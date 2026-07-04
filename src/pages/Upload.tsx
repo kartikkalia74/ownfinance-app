@@ -168,7 +168,7 @@ export default function Upload() {
                 setTransactions([]);
             } else {
                 console.error('Failed to parse file', error);
-                alert('Error parsing file');
+                alert(`Error parsing file: ${error.message || error.toString()}`);
             }
         } finally {
             if (!showPasswordDialog) {
@@ -212,7 +212,7 @@ export default function Upload() {
                 setErrorMessage("Could not detect any transactions. The raw text has been downloaded.");
                 setTransactions([]);
             } else {
-                setErrorMessage("Failed to parse PDF. The file might be corrupted.");
+                setErrorMessage(`Failed to parse PDF: ${error.message || error.toString()}. The file might be corrupted.`);
             }
         } finally {
             setIsProcessing(false);
